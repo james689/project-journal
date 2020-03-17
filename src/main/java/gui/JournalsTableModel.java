@@ -10,12 +10,15 @@ public class JournalsTableModel extends AbstractTableModel {
 
     private List<String[]> data;
     private String[] tableHeaders = {"journal id", "journal name", "duration", "# entries"};
-    private DataAccessObject dao;
 
     public JournalsTableModel() {
-        data = new ArrayList<>();
+        updateData();
+    }
+    
+    private List<String[]> getData() {
+        List<String[]> theData = new ArrayList<>();
         // get the data from database
-        dao = DataAccessObject.getInstance();
+        DataAccessObject dao = DataAccessObject.getInstance();
         ResultSet rs = dao.getJournals();
         try {
             while (rs.next()) {
@@ -23,11 +26,18 @@ public class JournalsTableModel extends AbstractTableModel {
                 String journalName = rs.getString("name");
                 int journalDurationMins = rs.getInt("total_duration");
                 String numEntries = rs.getString("num_entries");
-                data.add(new String[] {journalID,journalName,getHourMinDuration(journalDurationMins),numEntries});
+                theData.add(new String[] {journalID,journalName,getHourMinDuration(journalDurationMins),numEntries});
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
+        
+        return theData;
+    }
+    
+    public void updateData() {
+        data = getData();
+        fireTableDataChanged();
     }
     
     // converts minutes into hours and minutes e.g. if mins = 75 then

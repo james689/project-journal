@@ -49,4 +49,26 @@ public class DataAccessObject {
 
         return rs;
     }
+    
+    // creates a new journal with the given name
+    public void createNewJournal(String journalName) {
+        String query = "INSERT INTO journals(name) VALUES(\"" + journalName + "\");";
+        try {
+            Statement statement = db.createStatement();
+            statement.executeUpdate(query);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    
+    // deletes the journal with the given id
+    public void deleteJournal(int journalID) {
+        String query = "DELETE FROM journals WHERE id = " + journalID + ";";
+        try {
+            Statement statement = db.createStatement();
+            statement.executeUpdate(query);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 }
