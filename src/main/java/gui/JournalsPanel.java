@@ -7,6 +7,8 @@ import java.awt.event.ActionListener;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -17,12 +19,16 @@ public class JournalsPanel extends JPanel {
     private DataAccessObject dao;
     private JTable journalsTable;
     private JournalsTableModel journalsTableModel;
+    private JComboBox sortByComboBox;
 
     public JournalsPanel() {
         dao = DataAccessObject.getInstance();
 
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        sortByComboBox = new JComboBox(DataAccessObject.SortJournalBy.values());
+        sortByComboBox.addActionListener(new SortByComboBoxListener());
 
         journalsTableModel = new JournalsTableModel();
         journalsTable = new JTable(journalsTableModel);
@@ -31,10 +37,12 @@ public class JournalsPanel extends JPanel {
 
         JButton createNewJournalButton = new JButton("Create New Journal");
         createNewJournalButton.addActionListener(new CreateNewJournalButtonListener());
-        
+
         JButton deleteJournalButton = new JButton("Delete journal");
         deleteJournalButton.addActionListener(new DeleteJournalButtonListener());
 
+        add(new JLabel("Sort By: "));
+        add(sortByComboBox);
         add(journalsTableScrollPane);
         add(createNewJournalButton);
         add(deleteJournalButton);
@@ -56,23 +64,35 @@ public class JournalsPanel extends JPanel {
             }
 
             dao.createNewJournal(journalName);
-            journalsTableModel.updateData(); // table model needs to be told there
+            DataAccessObject.SortJournalBy sortBy = (DataAccessObject.SortJournalBy) sortByComboBox.getSelectedItem();
+            journalsTableModel.updateData(sortBy); // table model needs to be told there
             // is new data to display
         }
     }
-    
+
     public class DeleteJournalButtonListener implements ActionListener {
+
         public void actionPerformed(ActionEvent e) {
             int selectedRow = journalsTable.getSelectedRow();
             if (selectedRow == -1) {
                 JOptionPane.showMessageDialog(null, "no journal selected");
                 return;
             }
-            
-            //System.out.println("a journal has been selected: " + journalsTableModel.getJournalID(selectedRow));
+
             dao.deleteJournal(journalsTableModel.getJournalID(selectedRow));
-            journalsTableModel.updateData(); // table model needs to be told that
-            // the data has changed
+            DataAccessObject.SortJournalBy sortBy = (DataAccessObject.SortJournalBy) sortByComboBox.getSelectedItem();
+            journalsTableModel.updateData(sortBy); // table model needs to be told the
+            // data it is to display has changed
+        }
+    }
+
+    public class SortByComboBoxListener implements ActionListener {
+
+        public void actionPerformed(ActionEvent e) {
+            DataAccessObject.SortJournalBy sortBy = (DataAccessObject.SortJournalBy) sortByComboBox.getSelectedItem();
+            journalsTableModel.updateData(sortBy); // table model needs to be told the
+            // data it is to display has changed
+            System.out.println("sort by = " + sortBy);
         }
     }
 }

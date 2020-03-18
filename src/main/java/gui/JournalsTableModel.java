@@ -12,14 +12,14 @@ public class JournalsTableModel extends AbstractTableModel {
     private String[] tableHeaders = {"journal id", "journal name", "duration", "# entries"};
 
     public JournalsTableModel() {
-        updateData();
+        updateData(DataAccessObject.SortJournalBy.NAME_ASC);
     }
     
-    private List<String[]> getData() {
+    private List<String[]> getData(DataAccessObject.SortJournalBy value) {
         List<String[]> theData = new ArrayList<>();
         // get the data from database
         DataAccessObject dao = DataAccessObject.getInstance();
-        ResultSet rs = dao.getJournals();
+        ResultSet rs = dao.getJournals(value);
         try {
             while (rs.next()) {
                 String journalID = rs.getString("id");
@@ -35,8 +35,8 @@ public class JournalsTableModel extends AbstractTableModel {
         return theData;
     }
     
-    public void updateData() {
-        data = getData();
+    public void updateData(DataAccessObject.SortJournalBy value) {
+        data = getData(value);
         fireTableDataChanged();
     }
     

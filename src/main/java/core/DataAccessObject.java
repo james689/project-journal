@@ -1,5 +1,6 @@
 package core; 
 
+import gui.JournalsTableModel;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -31,15 +32,41 @@ public class DataAccessObject {
         }
         return instance;
     }
+    
+    public enum SortJournalBy { NAME_ASC, NAME_DESC, DURATION_ASC, DURATION_DESC, ENTRIES_ASC, ENTRIES_DESC };
 
     // returns all journals stored in the system
-    public ResultSet getJournals() {
+    public ResultSet getJournals(SortJournalBy value) {
         ResultSet rs = null;
         String query =  "SELECT journals.id, journals.name, SUM(journalentries.duration) AS total_duration, " +
                         "COUNT(journalentries.id) AS num_entries " +
                         "FROM journals LEFT OUTER JOIN journalentries " +
                         "ON journals.id = journalentries.journal_id " +
-                        "GROUP BY journals.id;";
+                        "GROUP BY journals.id ";
+        String orderBy = "";
+        switch (value) {
+            case NAME_ASC:
+                orderBy = "journals.name ASC";
+                break;
+            case NAME_DESC:
+                orderBy = "journals.name DESC";
+                break;
+            case DURATION_ASC:
+                orderBy = "total_duration ASC";
+                break;
+            case DURATION_DESC:
+                orderBy = "total_duration DESC";
+                break;
+            case ENTRIES_ASC:
+                orderBy = "num_entries ASC";
+                break;
+            case ENTRIES_DESC:
+                orderBy = "num_entries DESC";
+                break;
+        } 
+        query += ("ORDER BY " + orderBy + ";");
+
+        System.out.println(query);
         try {
             Statement statement = db.createStatement();
             rs = statement.executeQuery(query);
