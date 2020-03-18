@@ -59,6 +59,12 @@ public class JournalsTableModel extends AbstractTableModel {
     public int getRowCount() {
         return data.size();
     }
+    
+    // returns the journal ID for the given row
+    public int getJournalID(int row) {
+        String[] rowData = data.get(row);
+        return Integer.parseInt(rowData[0]);
+    }
 
     public Object getValueAt(int row, int col) {
         String[] rowData = data.get(row);

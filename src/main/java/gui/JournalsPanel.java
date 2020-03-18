@@ -15,6 +15,7 @@ import javax.swing.JTable;
 public class JournalsPanel extends JPanel {
 
     private DataAccessObject dao;
+    private JTable journalsTable;
     private JournalsTableModel journalsTableModel;
 
     public JournalsPanel() {
@@ -24,7 +25,7 @@ public class JournalsPanel extends JPanel {
         setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
         journalsTableModel = new JournalsTableModel();
-        JTable journalsTable = new JTable(journalsTableModel);
+        journalsTable = new JTable(journalsTableModel);
         JScrollPane journalsTableScrollPane = new JScrollPane(journalsTable);
         journalsTable.setPreferredScrollableViewportSize(new Dimension(900, 300));
 
@@ -36,6 +37,7 @@ public class JournalsPanel extends JPanel {
 
         add(journalsTableScrollPane);
         add(createNewJournalButton);
+        add(deleteJournalButton);
     }
 
     public class CreateNewJournalButtonListener implements ActionListener {
@@ -61,7 +63,16 @@ public class JournalsPanel extends JPanel {
     
     public class DeleteJournalButtonListener implements ActionListener {
         public void actionPerformed(ActionEvent e) {
+            int selectedRow = journalsTable.getSelectedRow();
+            if (selectedRow == -1) {
+                JOptionPane.showMessageDialog(null, "no journal selected");
+                return;
+            }
             
+            //System.out.println("a journal has been selected: " + journalsTableModel.getJournalID(selectedRow));
+            dao.deleteJournal(journalsTableModel.getJournalID(selectedRow));
+            journalsTableModel.updateData(); // table model needs to be told that
+            // the data has changed
         }
     }
 }
