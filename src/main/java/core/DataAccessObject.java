@@ -97,4 +97,23 @@ public class DataAccessObject {
             e.printStackTrace();
         }
     }
+    
+    public ResultSet getJournalData(int journalID) {
+        ResultSet rs = null;
+        
+        String query =  "SELECT journals.name AS journal_name, " +
+                        "SUM(journalentries.duration) AS total_duration, " +
+                        "COUNT(journalentries.id) AS num_entries " +
+                        "FROM journals LEFT OUTER JOIN journalentries " +
+                        "ON journals.id = journalentries.journal_id " +
+                        "WHERE journals.id = " + journalID + ";";
+        try {
+            Statement statement = db.createStatement();
+            rs = statement.executeQuery(query);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        
+        return rs;
+    }
 }
