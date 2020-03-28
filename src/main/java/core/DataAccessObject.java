@@ -98,7 +98,7 @@ public class DataAccessObject {
         }
     }
     
-    public ResultSet getJournalData(int journalID) {
+    public ResultSet getJournalMetaData(int journalID) {
         ResultSet rs = null;
         
         String query =  "SELECT journals.name AS journal_name, " +
@@ -115,5 +115,55 @@ public class DataAccessObject {
         }
         
         return rs;
+    }
+    
+    // options available for sorting a journal's entries
+    public enum SortJournalEntryBy { DATE_ASC, DATE_DESC, DURATION_ASC, DURATION_DESC};
+    
+    // returns all journal entries for the journal with the given journalID
+    // ordered according to the sortBy option
+    public ResultSet getJournalEntries(int journalID, SortJournalEntryBy sortBy) {
+        ResultSet rs = null;
+        
+        String query =  "SELECT id, date, duration, entry " + 
+                        "FROM journalentries " +
+                        "WHERE journal_id = " + journalID;
+        
+        String orderBy = "";
+        switch (sortBy) {
+            case DATE_ASC:
+                orderBy = "date ASC";
+                break;
+            case DATE_DESC:
+                orderBy = "date DESC";
+                break;
+            case DURATION_ASC:
+                orderBy = "duration ASC";
+                break;
+            case DURATION_DESC:
+                orderBy = "duration DESC";
+                break;
+        } 
+        query += (" ORDER BY " + orderBy + ";");
+
+        System.out.println(query);
+        try {
+            Statement statement = db.createStatement();
+            rs = statement.executeQuery(query);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        
+        return rs;
+    }
+    
+    public void deleteJournalEntry(int journalEntryID) {
+        String query = "DELETE FROM journalentries WHERE id = " + journalEntryID + ";";
+        try {
+            Statement statement = db.createStatement();
+            statement.executeUpdate(query);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

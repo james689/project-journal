@@ -34,6 +34,7 @@ public class JournalsPanel extends JPanel {
         setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
         
         journalsTableModel = new JournalsTableModel();
+        journalViewPanel.addDataChangeListener(journalsTableModel);
         journalsTable = new JTable(journalsTableModel);
         JScrollPane journalsTableScrollPane = new JScrollPane(journalsTable);
         journalsTable.setPreferredScrollableViewportSize(new Dimension(900, 300));
