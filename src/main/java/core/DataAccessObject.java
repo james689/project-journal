@@ -166,4 +166,19 @@ public class DataAccessObject {
             e.printStackTrace();
         }
     }
+    
+    public void addJournalEntry(int journalID, String date, String duration, String entry) {
+        String query = "INSERT INTO journalentries(journal_id, date, duration, entry) " + 
+                        "VALUES(" + journalID + ", " + 
+                        "\"" + date + "\"" + ", " + 
+                        duration + ", " + 
+                        "\"" + entry + "\"" + ");";
+        System.out.println(query);
+        try {
+            Statement statement = db.createStatement();
+            statement.executeUpdate(query);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 }
