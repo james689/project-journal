@@ -19,7 +19,7 @@ public class JournalDataEntryPanel extends JPanel {
         dateField = new JTextField(10);
         durationField = new JTextField(10);
         
-        entryTextArea = new JTextArea(10,10);
+        entryTextArea = new JTextArea(15,30);
         entryTextArea.setLineWrap(true);
         JScrollPane entryTextAreaScrollPane = new JScrollPane(entryTextArea);
         entryTextAreaScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);

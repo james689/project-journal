@@ -1,7 +1,6 @@
 package gui;
 
 import core.DataAccessObject;
-import java.awt.CardLayout;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -34,7 +33,7 @@ public class JournalsPanel extends JPanel {
         setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
         
         journalsTableModel = new JournalsTableModel();
-        journalViewPanel.addDataChangeListener(journalsTableModel);
+        dao.addJournalDataChangeListener(journalsTableModel);
         journalsTable = new JTable(journalsTableModel);
         JScrollPane journalsTableScrollPane = new JScrollPane(journalsTable);
         journalsTable.setPreferredScrollableViewportSize(new Dimension(900, 300));

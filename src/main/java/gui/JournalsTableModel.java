@@ -1,6 +1,7 @@
 package gui;
 
 import core.DataAccessObject;
+import core.Utility;
 import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
@@ -79,21 +80,13 @@ public class JournalsTableModel extends AbstractTableModel implements JournalDat
                 String journalName = rs.getString("name");
                 int journalDurationMins = rs.getInt("total_duration");
                 String numEntries = rs.getString("num_entries");
-                theData.add(new String[]{journalID, journalName, getHourMinDuration(journalDurationMins), numEntries});
+                theData.add(new String[]{journalID, journalName, Utility.getHourMinDuration(journalDurationMins), numEntries});
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
 
         return theData;
-    }
-
-    // converts minutes into hours and minutes e.g. if mins = 75 then
-    // return value will be "1 hour 15 mins"
-    private static String getHourMinDuration(int mins) {
-        int durationHours = mins / 60;
-        int durationMins = mins % 60;
-        return durationHours + " hours " + durationMins + " mins";
     }
     
     // the data of a journal has changed e.g. a journal entry may have been added/deleted
