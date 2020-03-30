@@ -130,6 +130,7 @@ public class JournalViewPanel extends JPanel implements JournalDataChangeListene
             JTextArea textArea = new JTextArea(entryText, 20, 40);
             textArea.setEditable(false);
             textArea.setLineWrap(true);
+            textArea.setWrapStyleWord(true);
 
             String borderTitle = "Entry id: " + entryID + " Date: " + date + " Duration: " + duration;
             setBorder(BorderFactory.createTitledBorder(borderTitle));
