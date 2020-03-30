@@ -126,7 +126,8 @@ public class DataAccessObject {
     // returns all journal entries for the journal with the given journalID
     // ordered according to the sortBy option
     public ResultSet getJournalEntries(int journalID, SortJournalEntryBy sortBy) {
-        String query =  "SELECT id, date, duration, entry " + 
+        // for DATE_FORMAT see https://www.w3schools.com/sql/func_mysql_date_format.asp
+        String query =  "SELECT id, DATE_FORMAT(date, \"%d/%m/%Y\") AS date_formatted, duration, entry " + 
                         "FROM journalentries " +
                         "WHERE journal_id = " + journalID;
         

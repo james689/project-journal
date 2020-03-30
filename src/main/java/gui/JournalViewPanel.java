@@ -88,7 +88,7 @@ public class JournalViewPanel extends JPanel implements JournalDataChangeListene
         try {
             while (journalEntriesData.next()) {
                 int entryID = journalEntriesData.getInt("id");
-                String date = journalEntriesData.getString("date");
+                String date = journalEntriesData.getString("date_formatted");
                 int duration = journalEntriesData.getInt("duration");
                 String entry = journalEntriesData.getString("entry");
                 journalEntriesPanel.add(new JournalEntryPanel(entryID, date, duration, entry));
