@@ -184,12 +184,13 @@ public class JournalViewPanel extends JPanel implements JournalDataChangeListene
                 System.out.println("user clicked ok");
                 // get data from journal entry panel
                 String date = journalDataEntryPanel.getDate();
+                String dateFormattedForMysql = Utility.convertToMysqlDateFormat(date);
                 String duration = journalDataEntryPanel.getDuration();
                 String entry = journalDataEntryPanel.getEntry();
                 System.out.println("Date: " + date);
                 System.out.println("Duration: " + duration);
                 System.out.println("Entry: " + entry);
-                dao.addJournalEntry(journalID, date, duration, entry);
+                dao.addJournalEntry(journalID, dateFormattedForMysql, duration, entry);
             } else {
                 System.out.println("user clicked cancel");
             }
