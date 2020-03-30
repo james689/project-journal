@@ -50,7 +50,7 @@ public class JournalViewPanel extends JPanel implements JournalDataChangeListene
         journalEntriesPanel.setLayout(new BoxLayout(journalEntriesPanel, BoxLayout.Y_AXIS));
 
         JScrollPane journalEntriesPanelScrollPane = new JScrollPane(journalEntriesPanel);
-
+        
         JButton backToJournalsPanelButton = new JButton("back to journals");
         backToJournalsPanelButton.addActionListener(new BackToJournalsPanelButtonListener());
 
@@ -79,6 +79,9 @@ public class JournalViewPanel extends JPanel implements JournalDataChangeListene
 
         populateJournalMetaDataLabels(journalMetaData);
         populateJournalEntriesPanel(journalEntriesData);
+        
+        revalidate();
+        repaint();
     }
 
     private void populateJournalEntriesPanel(ResultSet journalEntriesData) {
@@ -96,6 +99,8 @@ public class JournalViewPanel extends JPanel implements JournalDataChangeListene
         } catch (Exception e) {
             e.printStackTrace();
         }
+        
+        System.out.println("repopulated journal entries panel");
     }
 
     private void populateJournalMetaDataLabels(ResultSet journalMetaData) {
@@ -109,6 +114,8 @@ public class JournalViewPanel extends JPanel implements JournalDataChangeListene
         } catch (Exception e) {
             e.printStackTrace();
         }
+        
+        System.out.println("repopulated journal meta data panel");
     }
 
     // graphical representation of a journal entry
@@ -148,6 +155,7 @@ public class JournalViewPanel extends JPanel implements JournalDataChangeListene
         public void actionPerformed(ActionEvent e) {
             if (e.getActionCommand().equals("Edit")) {
                 System.out.println("edit button for id " + entryID);
+                edit();
             } else if (e.getActionCommand().equals("Delete")) {
                 System.out.println("delete button for id " + entryID);
                 delete();
@@ -161,6 +169,29 @@ public class JournalViewPanel extends JPanel implements JournalDataChangeListene
             if (dialogResult == JOptionPane.YES_OPTION) {
                 // delete the journal entry from the database
                 dao.deleteJournalEntry(entryID);
+            }
+        }
+        
+        private void edit() {
+            // create a JournalDataEntryPanel populated with the data from this journal entry
+            JournalDataEntryPanel journalDataEntryPanel = new JournalDataEntryPanel();
+            journalDataEntryPanel.setDate(date);
+            journalDataEntryPanel.setDuration(Integer.toString(duration));
+            journalDataEntryPanel.setEntry(entryText);
+            // display a popup
+            int result = JOptionPane.showConfirmDialog(null, journalDataEntryPanel,
+                    "Edit journal entry", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+
+            if (result == JOptionPane.OK_OPTION) {
+                System.out.println("user clicked ok on edit journal");
+                // get data from journal entry panel
+                String date = journalDataEntryPanel.getDate();
+                String dateFormattedForMysql = Utility.convertToMysqlDateFormat(date);
+                String duration = journalDataEntryPanel.getDuration();
+                String entry = journalDataEntryPanel.getEntry();
+                dao.updateJournalEntry(entryID, dateFormattedForMysql, duration, entry);
+            } else {
+                System.out.println("user clicked cancel on edit journal");
             }
         }
     }

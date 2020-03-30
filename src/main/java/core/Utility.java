@@ -12,7 +12,7 @@ public class Utility {
     public static String getHourMinDuration(int mins) {
         int durationHours = mins / 60;
         int durationMins = mins % 60;
-        String hour = (durationHours > 1) ? "hours" : "hour";
+        String hour = (durationHours == 1) ? "hour" : "hours";
         String minutes = (durationMins == 1) ? "minute" : "minutes";
         return durationHours + " " + hour + " " + durationMins + " " + minutes;
     }

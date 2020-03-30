@@ -1,8 +1,9 @@
-package core; 
+package core;
 
 import gui.JournalDataChangeListener;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.ArrayList;
@@ -38,11 +39,11 @@ public class DataAccessObject {
         }
         return instance;
     }
-    
+
     public void addJournalDataChangeListener(JournalDataChangeListener listener) {
         journalDataChangeListeners.add(listener);
     }
-    
+
     private ResultSet executeQuery(String query) {
         ResultSet rs = null;
         try {
@@ -53,7 +54,7 @@ public class DataAccessObject {
         }
         return rs;
     }
-    
+
     private void executeUpdate(String query) {
         try {
             Statement statement = db.createStatement();
@@ -62,16 +63,18 @@ public class DataAccessObject {
             e.printStackTrace();
         }
     }
-    
-    public enum SortJournalBy { NAME_ASC, NAME_DESC, DURATION_ASC, DURATION_DESC, ENTRIES_ASC, ENTRIES_DESC };
+
+    public enum SortJournalBy {
+        NAME_ASC, NAME_DESC, DURATION_ASC, DURATION_DESC, ENTRIES_ASC, ENTRIES_DESC
+    };
 
     // returns all journals stored in the system
     public ResultSet getJournals(SortJournalBy value) {
-        String query =  "SELECT journals.id, journals.name, SUM(journalentries.duration) AS total_duration, " +
-                        "COUNT(journalentries.id) AS num_entries " +
-                        "FROM journals LEFT OUTER JOIN journalentries " +
-                        "ON journals.id = journalentries.journal_id " +
-                        "GROUP BY journals.id ";
+        String query = "SELECT journals.id, journals.name, SUM(journalentries.duration) AS total_duration, "
+                + "COUNT(journalentries.id) AS num_entries "
+                + "FROM journals LEFT OUTER JOIN journalentries "
+                + "ON journals.id = journalentries.journal_id "
+                + "GROUP BY journals.id ";
         String orderBy = "";
         switch (value) {
             case NAME_ASC:
@@ -92,45 +95,47 @@ public class DataAccessObject {
             case ENTRIES_DESC:
                 orderBy = "num_entries DESC";
                 break;
-        } 
+        }
         query += ("ORDER BY " + orderBy + ";");
         System.out.println(query);
         return executeQuery(query);
     }
-    
+
     // creates a new journal with the given name
     public void createNewJournal(String journalName) {
         String query = "INSERT INTO journals(name) VALUES(\"" + journalName + "\");";
         executeUpdate(query);
     }
-    
+
     // deletes the journal with the given id
     public void deleteJournal(int journalID) {
         String query = "DELETE FROM journals WHERE id = " + journalID + ";";
         executeUpdate(query);
     }
-    
-    public ResultSet getJournalMetaData(int journalID) {   
-        String query =  "SELECT journals.name AS journal_name, " +
-                        "SUM(journalentries.duration) AS total_duration, " +
-                        "COUNT(journalentries.id) AS num_entries " +
-                        "FROM journals LEFT OUTER JOIN journalentries " +
-                        "ON journals.id = journalentries.journal_id " +
-                        "WHERE journals.id = " + journalID + ";";
+
+    public ResultSet getJournalMetaData(int journalID) {
+        String query = "SELECT journals.name AS journal_name, "
+                + "SUM(journalentries.duration) AS total_duration, "
+                + "COUNT(journalentries.id) AS num_entries "
+                + "FROM journals LEFT OUTER JOIN journalentries "
+                + "ON journals.id = journalentries.journal_id "
+                + "WHERE journals.id = " + journalID + ";";
         return executeQuery(query);
     }
-    
+
     // options available for sorting a journal's entries
-    public enum SortJournalEntryBy { DATE_ASC, DATE_DESC, DURATION_ASC, DURATION_DESC};
-    
+    public enum SortJournalEntryBy {
+        DATE_ASC, DATE_DESC, DURATION_ASC, DURATION_DESC
+    };
+
     // returns all journal entries for the journal with the given journalID
     // ordered according to the sortBy option
     public ResultSet getJournalEntries(int journalID, SortJournalEntryBy sortBy) {
         // for DATE_FORMAT see https://www.w3schools.com/sql/func_mysql_date_format.asp
-        String query =  "SELECT id, DATE_FORMAT(date, \"%d/%m/%Y\") AS date_formatted, duration, entry " + 
-                        "FROM journalentries " +
-                        "WHERE journal_id = " + journalID;
-        
+        String query = "SELECT id, DATE_FORMAT(date, \"%d/%m/%Y\") AS date_formatted, duration, entry "
+                + "FROM journalentries "
+                + "WHERE journal_id = " + journalID;
+
         String orderBy = "";
         switch (sortBy) {
             case DATE_ASC:
@@ -145,29 +150,58 @@ public class DataAccessObject {
             case DURATION_DESC:
                 orderBy = "duration DESC";
                 break;
-        } 
+        }
         query += (" ORDER BY " + orderBy + ";");
         System.out.println(query);
         return executeQuery(query);
     }
-    
+
     public void deleteJournalEntry(int journalEntryID) {
         String query = "DELETE FROM journalentries WHERE id = " + journalEntryID + ";";
         executeUpdate(query);
         notifyJournalDataChangeListeners();
     }
-    
+
     public void addJournalEntry(int journalID, String date, String duration, String entry) {
-        String query = "INSERT INTO journalentries(journal_id, date, duration, entry) " + 
-                        "VALUES(" + journalID + ", " + 
-                        "\"" + date + "\"" + ", " + 
-                        duration + ", " + 
-                        "\"" + entry + "\"" + ");";
+        String query = "INSERT INTO journalentries(journal_id, date, duration, entry) "
+                + "VALUES(" + journalID + ", "
+                + "\"" + date + "\"" + ", "
+                + duration + ", "
+                + "\"" + entry + "\"" + ");";
         System.out.println(query);
         executeUpdate(query);
         notifyJournalDataChangeListeners();
     }
+
+    /*public void updateJournalEntry(int journalEntryID, String date, String duration, String entry) {
+        String query = "UPDATE journalentries SET " +
+                        "date = " + "\"" + date + "\"" + ", " + 
+                        "duration = " + duration + ", " + 
+                        "entry = " + "\"" + entry + "\"" +
+                        " WHERE id = " + journalEntryID + ";";
+        System.out.println(query);
+        executeUpdate(query);
+        notifyJournalDataChangeListeners();
+    }*/
     
+    public void updateJournalEntry(int journalEntryID, String date, String duration, String entry) {
+        System.out.println("new prepared statement update journal being used");
+        String query = "UPDATE journalentries SET "
+                + "date = ?, duration = ?, entry = ? WHERE id = ?;";
+        try {
+            PreparedStatement updateJournalEntryStatement = db.prepareStatement(query);
+            updateJournalEntryStatement.setString(1, date);
+            updateJournalEntryStatement.setString(2, duration);
+            updateJournalEntryStatement.setString(3, entry);
+            updateJournalEntryStatement.setInt(4,journalEntryID);
+            updateJournalEntryStatement.executeUpdate();
+            updateJournalEntryStatement.close();
+            notifyJournalDataChangeListeners();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     private void notifyJournalDataChangeListeners() {
         for (JournalDataChangeListener listener : journalDataChangeListeners) {
             listener.dataChanged();
