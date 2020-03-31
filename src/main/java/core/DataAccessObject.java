@@ -55,15 +55,6 @@ public class DataAccessObject {
         return rs;
     }
 
-    private void executeUpdate(String query) {
-        try {
-            Statement statement = db.createStatement();
-            statement.executeUpdate(query);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
     public enum SortJournalBy {
         NAME_ASC, NAME_DESC, DURATION_ASC, DURATION_DESC, ENTRIES_ASC, ENTRIES_DESC
     };
@@ -103,14 +94,27 @@ public class DataAccessObject {
 
     // creates a new journal with the given name
     public void createNewJournal(String journalName) {
-        String query = "INSERT INTO journals(name) VALUES(\"" + journalName + "\");";
-        executeUpdate(query);
+        String query = "INSERT INTO journals(name) VALUES(?);";
+        try {
+            PreparedStatement createJournalStatement = db.prepareStatement(query);
+            createJournalStatement.setString(1, journalName);
+            createJournalStatement.executeUpdate();
+            createJournalStatement.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
-
-    // deletes the journal with the given id
+    
     public void deleteJournal(int journalID) {
-        String query = "DELETE FROM journals WHERE id = " + journalID + ";";
-        executeUpdate(query);
+        String query = "DELETE FROM journals WHERE id = ?;";
+        try {
+            PreparedStatement deleteJournalStatement = db.prepareStatement(query);
+            deleteJournalStatement.setInt(1, journalID);
+            deleteJournalStatement.executeUpdate();
+            deleteJournalStatement.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public ResultSet getJournalMetaData(int journalID) {
@@ -155,34 +159,36 @@ public class DataAccessObject {
         System.out.println(query);
         return executeQuery(query);
     }
-
+    
     public void deleteJournalEntry(int journalEntryID) {
-        String query = "DELETE FROM journalentries WHERE id = " + journalEntryID + ";";
-        executeUpdate(query);
-        notifyJournalDataChangeListeners();
+        String query = "DELETE FROM journalentries WHERE id = ?;";
+        try {
+            PreparedStatement deleteJournalEntryStatement = db.prepareStatement(query);
+            deleteJournalEntryStatement.setInt(1, journalEntryID);
+            deleteJournalEntryStatement.executeUpdate();
+            deleteJournalEntryStatement.close();
+            notifyJournalDataChangeListeners();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
-
+    
     public void addJournalEntry(int journalID, String date, String duration, String entry) {
         String query = "INSERT INTO journalentries(journal_id, date, duration, entry) "
-                + "VALUES(" + journalID + ", "
-                + "\"" + date + "\"" + ", "
-                + duration + ", "
-                + "\"" + entry + "\"" + ");";
-        System.out.println(query);
-        executeUpdate(query);
-        notifyJournalDataChangeListeners();
+                + "VALUES(?,?,?,?);";      
+        try {
+            PreparedStatement createJournalEntryStatement = db.prepareStatement(query);
+            createJournalEntryStatement.setInt(1, journalID);
+            createJournalEntryStatement.setString(2, date);
+            createJournalEntryStatement.setString(3, duration);
+            createJournalEntryStatement.setString(4, entry);
+            createJournalEntryStatement.executeUpdate();
+            createJournalEntryStatement.close();
+            notifyJournalDataChangeListeners();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
-
-    /*public void updateJournalEntry(int journalEntryID, String date, String duration, String entry) {
-        String query = "UPDATE journalentries SET " +
-                        "date = " + "\"" + date + "\"" + ", " + 
-                        "duration = " + duration + ", " + 
-                        "entry = " + "\"" + entry + "\"" +
-                        " WHERE id = " + journalEntryID + ";";
-        System.out.println(query);
-        executeUpdate(query);
-        notifyJournalDataChangeListeners();
-    }*/
     
     public void updateJournalEntry(int journalEntryID, String date, String duration, String entry) {
         System.out.println("new prepared statement update journal being used");
