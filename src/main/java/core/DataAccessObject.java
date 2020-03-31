@@ -44,17 +44,6 @@ public class DataAccessObject {
         journalDataChangeListeners.add(listener);
     }
 
-    private ResultSet executeQuery(String query) {
-        ResultSet rs = null;
-        try {
-            Statement statement = db.createStatement();
-            rs = statement.executeQuery(query);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return rs;
-    }
-
     public enum SortJournalBy {
         NAME_ASC, NAME_DESC, DURATION_ASC, DURATION_DESC, ENTRIES_ASC, ENTRIES_DESC
     };
@@ -89,7 +78,14 @@ public class DataAccessObject {
         }
         query += ("ORDER BY " + orderBy + ";");
         System.out.println(query);
-        return executeQuery(query);
+        ResultSet rs = null;
+        try {
+            Statement statement = db.createStatement();
+            rs = statement.executeQuery(query);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return rs;
     }
 
     // creates a new journal with the given name
@@ -116,15 +112,25 @@ public class DataAccessObject {
             e.printStackTrace();
         }
     }
-
+    
     public ResultSet getJournalMetaData(int journalID) {
         String query = "SELECT journals.name AS journal_name, "
                 + "SUM(journalentries.duration) AS total_duration, "
                 + "COUNT(journalentries.id) AS num_entries "
                 + "FROM journals LEFT OUTER JOIN journalentries "
                 + "ON journals.id = journalentries.journal_id "
-                + "WHERE journals.id = " + journalID + ";";
-        return executeQuery(query);
+                + "WHERE journals.id = ?;";
+        System.out.println(query);
+        // execute the query
+        ResultSet rs = null;
+        try {
+            PreparedStatement getJournalMetaDataStatement = db.prepareStatement(query);
+            getJournalMetaDataStatement.setInt(1, journalID);
+            rs = getJournalMetaDataStatement.executeQuery();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return rs;
     }
 
     // options available for sorting a journal's entries
@@ -136,10 +142,9 @@ public class DataAccessObject {
     // ordered according to the sortBy option
     public ResultSet getJournalEntries(int journalID, SortJournalEntryBy sortBy) {
         // for DATE_FORMAT see https://www.w3schools.com/sql/func_mysql_date_format.asp
-        String query = "SELECT id, DATE_FORMAT(date, \"%d/%m/%Y\") AS date_formatted, duration, entry "
-                + "FROM journalentries "
-                + "WHERE journal_id = " + journalID;
-
+        // build the query
+        String query = "SELECT id, DATE_FORMAT(date, \"%d/%m/%Y\") AS date_formatted, "
+                + "duration, entry FROM journalentries WHERE journal_id = ?";
         String orderBy = "";
         switch (sortBy) {
             case DATE_ASC:
@@ -157,7 +162,16 @@ public class DataAccessObject {
         }
         query += (" ORDER BY " + orderBy + ";");
         System.out.println(query);
-        return executeQuery(query);
+        // execute the query
+        ResultSet rs = null;
+        try {
+            PreparedStatement getJournalEntriesStatement = db.prepareStatement(query);
+            getJournalEntriesStatement.setInt(1, journalID);
+            rs = getJournalEntriesStatement.executeQuery();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return rs;
     }
     
     public void deleteJournalEntry(int journalEntryID) {
