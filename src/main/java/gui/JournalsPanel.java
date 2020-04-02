@@ -26,12 +26,12 @@ public class JournalsPanel extends JPanel {
     public JournalsPanel(CardsPanel cardsPanel, JournalViewPanel journalViewPanel) {
         this.cardsPanel = cardsPanel;
         this.journalViewPanel = journalViewPanel;
-        
+
         dao = DataAccessObject.getInstance();
 
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-        
+
         journalsTableModel = new JournalsTableModel();
         dao.addJournalDataChangeListener(journalsTableModel);
         journalsTable = new JTable(journalsTableModel);
@@ -46,15 +46,15 @@ public class JournalsPanel extends JPanel {
         sortByPanel.add(sortByComboBox);
 
         JPanel buttonsPanel = new JPanel();
-        
+
         JButton createNewJournalButton = new JButton("Create New Journal");
         createNewJournalButton.addActionListener(new CreateNewJournalButtonListener());
         buttonsPanel.add(createNewJournalButton);
-        
+
         JButton deleteJournalButton = new JButton("Delete Journal");
         deleteJournalButton.addActionListener(new DeleteJournalButtonListener());
         buttonsPanel.add(deleteJournalButton);
-        
+
         JButton viewJournalButton = new JButton("View/Edit Journal");
         viewJournalButton.addActionListener(new ViewJournalButtonListener());
         buttonsPanel.add(viewJournalButton);
@@ -94,12 +94,18 @@ public class JournalsPanel extends JPanel {
                 return;
             }
 
-            dao.deleteJournal(journalsTableModel.getJournalID(selectedRow));
-            journalsTableModel.updateData(); // table model needs to be told the
-            // data it is to display has changed
+            // prompt user to make sure they really do want to delete this journal
+            int dialogResult = JOptionPane.showConfirmDialog(null, "Are you sure you want to delete this journal?",
+                    "Delete confirmation", JOptionPane.YES_NO_OPTION);
+            if (dialogResult == JOptionPane.YES_OPTION) {
+                // delete the journal from the database
+                dao.deleteJournal(journalsTableModel.getJournalID(selectedRow));
+                journalsTableModel.updateData(); // table model needs to be told the
+                // data it is to display has changed
+            }
         }
     }
-    
+
     public class ViewJournalButtonListener implements ActionListener {
 
         public void actionPerformed(ActionEvent e) {
@@ -108,7 +114,7 @@ public class JournalsPanel extends JPanel {
                 JOptionPane.showMessageDialog(null, "no journal selected");
                 return;
             }
-            
+
             int journalID = journalsTableModel.getJournalID(selectedRow);
             // show the JournalViewPanel with specified journal
             journalViewPanel.setJournalID(journalID);
