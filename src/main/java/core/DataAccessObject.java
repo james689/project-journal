@@ -204,6 +204,29 @@ public class DataAccessObject {
         }
     }
     
+    // returns true if one or more journal entries exist
+    // in the database for the given journal on the given date
+    public boolean checkJournalEntryExists(int journalID, String date) {
+        boolean ret = true; 
+        
+        String query = "SELECT * FROM journalentries WHERE journal_id = ? AND date = ?;";   
+        try {
+            PreparedStatement statement = db.prepareStatement(query);
+            statement.setInt(1, journalID);
+            statement.setString(2, date);
+            ResultSet rs = statement.executeQuery();
+            if (rs.first() == false) { // see https://stackoverflow.com/questions/18301326/can-a-resultset-be-null-in-java
+                // there are no rows in the result set i.e. result set is empty
+                ret = false;
+            }
+            statement.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        
+        return ret;
+    }
+    
     public void updateJournalEntry(int journalEntryID, String date, String duration, String entry) {
         System.out.println("new prepared statement update journal being used");
         String query = "UPDATE journalentries SET "

@@ -36,7 +36,7 @@ public class JournalViewPanel extends JPanel implements JournalDataChangeListene
         journalID = -1;
 
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
-        setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
+        setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
         JPanel metaDataPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         metaDataPanel.setBorder(BorderFactory.createTitledBorder("Meta data"));
@@ -140,25 +140,25 @@ public class JournalViewPanel extends JPanel implements JournalDataChangeListene
             this.entryText = entryText;
 
             //setLayout(new FlowLayout(FlowLayout.LEFT));
-            setLayout(new BoxLayout(this,BoxLayout.Y_AXIS));
+            setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
             //setBackground(Color.GREEN);
 
             Box entryLabelsBox = Box.createHorizontalBox();
-            entryLabelsBox.setAlignmentX( Component.LEFT_ALIGNMENT );
+            entryLabelsBox.setAlignmentX(Component.LEFT_ALIGNMENT);
             JLabel entryIDLabel = new JLabel("ID: " + Integer.toString(entryID));
-            entryIDLabel.setAlignmentX( Component.LEFT_ALIGNMENT );
+            entryIDLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
             JLabel entryDateLabel = new JLabel("Date: " + date);
-            entryDateLabel.setAlignmentX( Component.LEFT_ALIGNMENT );
+            entryDateLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
             JLabel entryDurationLabel = new JLabel("Duration: " + Utility.getHourMinDuration(duration));
-            entryDurationLabel.setAlignmentX( Component.LEFT_ALIGNMENT );
+            entryDurationLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
             entryLabelsBox.add(entryIDLabel);
-            entryLabelsBox.add(Box.createRigidArea(new Dimension(10,0)));
+            entryLabelsBox.add(Box.createRigidArea(new Dimension(10, 0)));
             entryLabelsBox.add(entryDateLabel);
-            entryLabelsBox.add(Box.createRigidArea(new Dimension(10,0)));
+            entryLabelsBox.add(Box.createRigidArea(new Dimension(10, 0)));
             entryLabelsBox.add(entryDurationLabel);
 
             JTextArea textArea = new JTextArea(entryText, 20, 20);
-            textArea.setAlignmentX( Component.LEFT_ALIGNMENT );
+            textArea.setAlignmentX(Component.LEFT_ALIGNMENT);
             textArea.setEditable(false);
             textArea.setLineWrap(true);
             textArea.setWrapStyleWord(true);
@@ -167,14 +167,13 @@ public class JournalViewPanel extends JPanel implements JournalDataChangeListene
             Border titledBorder = BorderFactory.createTitledBorder(borderTitle);
             Border emptyBorder = BorderFactory.createEmptyBorder(10, 10, 10, 10);
             setBorder(BorderFactory.createCompoundBorder(emptyBorder, titledBorder));*/
-
             Box buttonBox = Box.createHorizontalBox();
-            buttonBox.setAlignmentX( Component.LEFT_ALIGNMENT );
+            buttonBox.setAlignmentX(Component.LEFT_ALIGNMENT);
             JButton editButton = new JButton("Edit");
-            editButton.setAlignmentX( Component.LEFT_ALIGNMENT );
+            editButton.setAlignmentX(Component.LEFT_ALIGNMENT);
             editButton.addActionListener(this);
             JButton deleteButton = new JButton("Delete");
-            deleteButton.setAlignmentX( Component.LEFT_ALIGNMENT );
+            deleteButton.setAlignmentX(Component.LEFT_ALIGNMENT);
             deleteButton.addActionListener(this);
             buttonBox.add(editButton);
             buttonBox.add(deleteButton);
@@ -243,14 +242,34 @@ public class JournalViewPanel extends JPanel implements JournalDataChangeListene
             int result = JOptionPane.showConfirmDialog(null, journalDataEntryPanel,
                     "Add new journal entry", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
 
-            if (result == JOptionPane.OK_OPTION) {
-                // get data from journal entry panel
-                String date = journalDataEntryPanel.getDate();
-                String dateFormattedForMysql = Utility.convertToMysqlDateFormat(date);
-                String duration = journalDataEntryPanel.getDuration();
-                String entry = journalDataEntryPanel.getEntry();
-                dao.addJournalEntry(journalID, dateFormattedForMysql, duration, entry);
+            if (result == JOptionPane.CANCEL_OPTION || result == JOptionPane.CLOSED_OPTION) {
+                // user cancelled or closed the dialog
+                return;
             }
+
+            // if here, user pressed ok button
+            
+            // get data from journal entry panel
+            String dateFormattedForMysql = Utility.convertToMysqlDateFormat(journalDataEntryPanel.getDate());
+            String duration = journalDataEntryPanel.getDuration();
+            String entry = journalDataEntryPanel.getEntry();
+            
+            // validate data before submitting to database (still to implement)
+
+            // check to see if there is a journal entry in this journal with the
+            // same date (to warn the user about potential duplicate entries)
+            boolean exists = dao.checkJournalEntryExists(journalID, dateFormattedForMysql);
+            if (exists) {
+                // prompt user to make sure they really do want to insert this journal entry
+                int dialogResult = JOptionPane.showConfirmDialog(null, "There is an existing entry with the same date, do you wish to continue?",
+                        "Potential duplicate entry", JOptionPane.YES_NO_OPTION);
+                if (dialogResult == JOptionPane.NO_OPTION || dialogResult == JOptionPane.CLOSED_OPTION) {
+                    return;
+                }
+            } 
+            
+            // add the journal entry to the database
+            dao.addJournalEntry(journalID, dateFormattedForMysql, duration, entry);
         }
-    }
+    } // end class NewJournalEntryButtonListener
 }
