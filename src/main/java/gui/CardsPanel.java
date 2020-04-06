@@ -3,6 +3,10 @@ package gui;
 import java.awt.CardLayout;
 import javax.swing.JPanel;
 
+/**
+ * This panel contains the "cards" (the screens in the GUI) that
+ * can be flipped between.
+ */
 public class CardsPanel extends JPanel {
     
     private CardLayout cardLayout;

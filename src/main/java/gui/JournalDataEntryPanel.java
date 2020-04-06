@@ -7,6 +7,12 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 
+/**
+ * This panel is used for inputting a new journal entry
+ * or editing an existing journal entry. In the main program,
+ * an instance of this data entry panel is created and put inside
+ * a JDialog box when creating/editing a journal entry.
+ */
 public class JournalDataEntryPanel extends JPanel {
     
     private JTextField dateField;

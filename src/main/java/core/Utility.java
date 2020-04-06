@@ -1,10 +1,12 @@
 package core;
 
-// This class contains utility/helper methods
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
+/**
+ * utility/helper methods.
+ */
 public class Utility {
 
     // converts minutes into hours and minutes e.g. if mins = 75 then

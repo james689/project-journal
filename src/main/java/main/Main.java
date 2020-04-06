@@ -1,8 +1,8 @@
 package main;
 
 import gui.CardsPanel;
-import gui.JournalViewPanel;
-import gui.JournalsPanel;
+import gui.JournalViewScreen;
+import gui.JournalsScreen;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 
@@ -13,8 +13,8 @@ public class Main {
         window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         CardsPanel cardsPanel = new CardsPanel();
-        JournalViewPanel journalViewPanel = new JournalViewPanel(cardsPanel);
-        JPanel journalsPanel = new JournalsPanel(cardsPanel, journalViewPanel);
+        JournalViewScreen journalViewPanel = new JournalViewScreen(cardsPanel);
+        JPanel journalsPanel = new JournalsScreen(cardsPanel, journalViewPanel);
         
         cardsPanel.addCard(journalsPanel, "journals");
         cardsPanel.addCard(journalViewPanel, "journal view");

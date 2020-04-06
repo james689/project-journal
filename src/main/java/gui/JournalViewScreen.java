@@ -2,7 +2,6 @@ package gui;
 
 import core.DataAccessObject;
 import core.Utility;
-import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
@@ -19,21 +18,26 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 
-public class JournalViewPanel extends JPanel implements JournalDataChangeListener {
+/**
+ * This screen displays all of the entries belonging to a single journal, as well
+ * as summary data about the journal such as the number of entries and duration of
+ * the journal.
+ */
+public class JournalViewScreen extends JPanel implements JournalDataChangeListener {
 
     private CardsPanel cardsPanel;
-    private int journalID; // id of the journal the panel will display
+    private int journalID; // id of the journal the screen will display
 
     private JLabel nameLabel, durationLabel, numEntriesLabel;
     private JPanel journalEntriesPanel; // holds all of the journal entries
 
     private DataAccessObject dao;
 
-    public JournalViewPanel(CardsPanel cardsPanel) {
+    public JournalViewScreen(CardsPanel cardsPanel) {
         this.cardsPanel = cardsPanel;
         dao = DataAccessObject.getInstance();
         dao.addJournalDataChangeListener(this);
-        journalID = -1;
+        journalID = -1; 
 
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
@@ -54,13 +58,13 @@ public class JournalViewPanel extends JPanel implements JournalDataChangeListene
         journalEntriesPanel.setLayout(new BoxLayout(journalEntriesPanel, BoxLayout.Y_AXIS));
         JScrollPane journalEntriesPanelScrollPane = new JScrollPane(journalEntriesPanel);
 
-        JButton backToJournalsPanelButton = new JButton("back to journals");
-        backToJournalsPanelButton.addActionListener(new BackToJournalsPanelButtonListener());
+        JButton backToJournalsScreenButton = new JButton("back to journals");
+        backToJournalsScreenButton.addActionListener(new BackToJournalsScreenButtonListener());
 
         JButton newJournalEntryButton = new JButton("New entry");
         newJournalEntryButton.addActionListener(new NewJournalEntryButtonListener());
 
-        add(backToJournalsPanelButton);
+        add(backToJournalsScreenButton);
         add(metaDataPanel);
         add(Box.createVerticalStrut(20));
         add(journalEntriesPanelScrollPane);
@@ -72,6 +76,10 @@ public class JournalViewPanel extends JPanel implements JournalDataChangeListene
         refreshData();
     }
 
+    /**
+     * This method is used to tell the screen what journal it should
+     * display.
+     */
     public void setJournalID(int journalID) {
         this.journalID = journalID;
         refreshData();
@@ -84,7 +92,7 @@ public class JournalViewPanel extends JPanel implements JournalDataChangeListene
         populateJournalMetaDataLabels(journalMetaData);
         populateJournalEntriesPanel(journalEntriesData);
 
-        // the JournalViewPanel must be revalidated and repainted to ensure
+        // the screen must be revalidated and repainted to ensure
         // that the changes in journal entry data are visible.
         revalidate();
         repaint();
@@ -106,8 +114,6 @@ public class JournalViewPanel extends JPanel implements JournalDataChangeListene
         } catch (Exception e) {
             e.printStackTrace();
         }
-
-        System.out.println("repopulated journal entries panel");
     }
 
     private void populateJournalMetaDataLabels(ResultSet journalMetaData) {
@@ -121,8 +127,6 @@ public class JournalViewPanel extends JPanel implements JournalDataChangeListene
         } catch (Exception e) {
             e.printStackTrace();
         }
-
-        System.out.println("repopulated journal meta data panel");
     }
 
     // graphical representation of a journal entry
@@ -139,9 +143,7 @@ public class JournalViewPanel extends JPanel implements JournalDataChangeListene
             this.duration = duration;
             this.entryText = entryText;
 
-            //setLayout(new FlowLayout(FlowLayout.LEFT));
             setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
-            //setBackground(Color.GREEN);
 
             Box entryLabelsBox = Box.createHorizontalBox();
             entryLabelsBox.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -163,10 +165,6 @@ public class JournalViewPanel extends JPanel implements JournalDataChangeListene
             textArea.setLineWrap(true);
             textArea.setWrapStyleWord(true);
 
-            /*String borderTitle = "Entry id: " + entryID + " Date: " + date + " Duration: " + Utility.getHourMinDuration(duration);
-            Border titledBorder = BorderFactory.createTitledBorder(borderTitle);
-            Border emptyBorder = BorderFactory.createEmptyBorder(10, 10, 10, 10);
-            setBorder(BorderFactory.createCompoundBorder(emptyBorder, titledBorder));*/
             Box buttonBox = Box.createHorizontalBox();
             buttonBox.setAlignmentX(Component.LEFT_ALIGNMENT);
             JButton editButton = new JButton("Edit");
@@ -181,16 +179,12 @@ public class JournalViewPanel extends JPanel implements JournalDataChangeListene
             add(entryLabelsBox);
             add(textArea);
             add(buttonBox);
-            //add(editButton);
-            //add(deleteButton);
         }
 
         public void actionPerformed(ActionEvent e) {
             if (e.getActionCommand().equals("Edit")) {
-                System.out.println("edit button for id " + entryID);
                 edit();
             } else if (e.getActionCommand().equals("Delete")) {
-                System.out.println("delete button for id " + entryID);
                 delete();
             }
         }
@@ -216,7 +210,7 @@ public class JournalViewPanel extends JPanel implements JournalDataChangeListene
                     "Edit journal entry", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
 
             if (result == JOptionPane.OK_OPTION) {
-                // get data from journal entry panel
+                // get data from journal entry panel and update the database
                 String date = journalDataEntryPanel.getDate();
                 String dateFormattedForMysql = Utility.convertToMysqlDateFormat(date);
                 String duration = journalDataEntryPanel.getDuration();
@@ -227,7 +221,7 @@ public class JournalViewPanel extends JPanel implements JournalDataChangeListene
     } // end JournalEntryPanel class
 
     // inner class listeners
-    class BackToJournalsPanelButtonListener implements ActionListener {
+    class BackToJournalsScreenButtonListener implements ActionListener {
 
         public void actionPerformed(ActionEvent e) {
             cardsPanel.switchToCard("journals");
@@ -272,4 +266,4 @@ public class JournalViewPanel extends JPanel implements JournalDataChangeListene
             dao.addJournalEntry(journalID, dateFormattedForMysql, duration, entry);
         }
     } // end class NewJournalEntryButtonListener
-}
+} // end JournalViewScreen

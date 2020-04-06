@@ -8,6 +8,7 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
+import javax.swing.JOptionPane;
 
 // This object is used to access and manipulate data from the data source
 // (in this case a MySQL database)
@@ -17,9 +18,9 @@ public class DataAccessObject {
     private Connection db; // the connection to the database
     private List<JournalDataChangeListener> journalDataChangeListeners; // listeners that
     // will be notified when journal data is changed, such as when a new entry is added to
-    // a journal or an entry is deleted from a journal etc.
-
-    // DAO constructor is private, DataAccessObject is a singleton
+    // a journal or an entry is deleted from a journal.
+    
+    // constructor is private, DataAccessObject is a singleton
     private DataAccessObject() {
         journalDataChangeListeners = new ArrayList<>();
         try {
@@ -28,8 +29,10 @@ public class DataAccessObject {
                     "jdbc:mysql://localhost:3306/learning_journal?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC",
                     "root", "bunslow121");
         } catch (Exception e) {
-            System.out.println("could not initialize the database");
-            e.printStackTrace();
+            // shut the program down if a database connection cannot be established
+            // since the program is useless without being able to access the database
+            JOptionPane.showMessageDialog(null, "Could not initialize database, exiting...");
+            System.exit(1);
         }
     }
 
@@ -55,7 +58,6 @@ public class DataAccessObject {
                 + " COUNT(DISTINCT(journals.id)) as journals_count"
                 + " FROM journals LEFT OUTER JOIN journalentries"
                 + " ON journals.id = journalentries.journal_id;";
-        // execute the query
         ResultSet rs = null;
         try {
             Statement statement = db.createStatement();
@@ -71,6 +73,7 @@ public class DataAccessObject {
     };
 
     // returns all journals stored in the system
+    // sorted according to the sort by value
     public ResultSet getJournals(SortJournalBy value) {
         String query = "SELECT journals.id, journals.name, SUM(journalentries.duration) AS total_duration, "
                 + "COUNT(journalentries.id) AS num_entries "
@@ -99,7 +102,6 @@ public class DataAccessObject {
                 break;
         }
         query += ("ORDER BY " + orderBy + ";");
-        System.out.println(query);
         ResultSet rs = null;
         try {
             Statement statement = db.createStatement();
@@ -135,6 +137,8 @@ public class DataAccessObject {
         }
     }
 
+    // returns the meta data for a journal, including the journal's
+    // name, duration and number of entries
     public ResultSet getJournalMetaData(int journalID) {
         String query = "SELECT journals.name AS journal_name, "
                 + "SUM(journalentries.duration) AS total_duration, "
@@ -142,8 +146,6 @@ public class DataAccessObject {
                 + "FROM journals LEFT OUTER JOIN journalentries "
                 + "ON journals.id = journalentries.journal_id "
                 + "WHERE journals.id = ?;";
-        System.out.println(query);
-        // execute the query
         ResultSet rs = null;
         try {
             PreparedStatement getJournalMetaDataStatement = db.prepareStatement(query);
@@ -183,7 +185,6 @@ public class DataAccessObject {
                 break;
         }
         query += (" ORDER BY " + orderBy + ";");
-        System.out.println(query);
         // execute the query
         ResultSet rs = null;
         try {
@@ -250,7 +251,6 @@ public class DataAccessObject {
     }
 
     public void updateJournalEntry(int journalEntryID, String date, String duration, String entry) {
-        System.out.println("new prepared statement update journal being used");
         String query = "UPDATE journalentries SET "
                 + "date = ?, duration = ?, entry = ? WHERE id = ?;";
         try {

@@ -17,28 +17,33 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 
-public class JournalsPanel extends JPanel implements JournalDataChangeListener {
+/**
+ * The JournalsScreen represents the GUI screen that shows all journals
+ * stored in the system. It implements the JournalDataChangeListener interface 
+ * so that it can be notified when a journal's data has changed and then refresh
+ * it display of the data.
+ */
+public class JournalsScreen extends JPanel implements JournalDataChangeListener {
 
     private DataAccessObject dao;
     private JTable journalsTable;
     private JournalsTableModel journalsTableModel;
     private JComboBox sortByComboBox;
     private CardsPanel cardsPanel;
-    private JournalViewPanel journalViewPanel;
+    private JournalViewScreen journalViewPanel;
     private JLabel numEntriesLabel, totalDurationLabel, numJournalsLabel;
 
-    public JournalsPanel(CardsPanel cardsPanel, JournalViewPanel journalViewPanel) {
+    public JournalsScreen(CardsPanel cardsPanel, JournalViewScreen journalViewPanel) {
         this.cardsPanel = cardsPanel;
         this.journalViewPanel = journalViewPanel;
 
         dao = DataAccessObject.getInstance();
+        dao.addJournalDataChangeListener(this);
 
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
         journalsTableModel = new JournalsTableModel();
-        //dao.addJournalDataChangeListener(journalsTableModel);
-        dao.addJournalDataChangeListener(this);
         journalsTable = new JTable(journalsTableModel);
         JScrollPane journalsTableScrollPane = new JScrollPane(journalsTable);
         journalsTable.setPreferredScrollableViewportSize(new Dimension(900, 300));
@@ -79,9 +84,13 @@ public class JournalsPanel extends JPanel implements JournalDataChangeListener {
         add(buttonsPanel);
     }
     
+    /**
+     * This method is called when a journal's data has changed, for example
+     * a new entry has been added to the journal, an entry has been deleted
+     * from the journal etc. The panel then needs to update its display
+     * of the data.
+     */
     public void dataChanged() {
-        // a journal's data has changed, tell the table model (which is owned by this
-        // panel) to update its data and also update the summary data labels
         journalsTableModel.updateData();
         updateSummaryDataLabels();
     }
@@ -98,6 +107,8 @@ public class JournalsPanel extends JPanel implements JournalDataChangeListener {
             e.printStackTrace();
         }
     }
+    
+    // inner class listeners
 
     public class CreateNewJournalButtonListener implements ActionListener {
 
@@ -149,7 +160,7 @@ public class JournalsPanel extends JPanel implements JournalDataChangeListener {
             }
 
             int journalID = journalsTableModel.getJournalID(selectedRow);
-            // show the JournalViewPanel with specified journal
+            // show the JournalViewPanel with the specified journal
             journalViewPanel.setJournalID(journalID);
             cardsPanel.switchToCard("journal view");
         }
@@ -160,9 +171,9 @@ public class JournalsPanel extends JPanel implements JournalDataChangeListener {
         public void actionPerformed(ActionEvent e) {
             DataAccessObject.SortJournalBy sortBy = (DataAccessObject.SortJournalBy) sortByComboBox.getSelectedItem();
             journalsTableModel.setDataSortingMethod(sortBy);
-            journalsTableModel.updateData(); // table model needs to be told the
-            // data it is to display has changed (don't need to update the journals summary
-            // data since this won't be affected so don't need to call dataChanged())
+            journalsTableModel.updateData(); // the table model needs to be told the
+            // data it is to display has changed (but we don't need to update the 
+            // journals summary data as well since this won't be affected)
         }
     }
 }
