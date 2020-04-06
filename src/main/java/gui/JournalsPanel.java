@@ -1,10 +1,13 @@
 package gui;
 
 import core.DataAccessObject;
+import core.Utility;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.sql.ResultSet;
 import javax.swing.BorderFactory;
+import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -14,7 +17,7 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 
-public class JournalsPanel extends JPanel {
+public class JournalsPanel extends JPanel implements JournalDataChangeListener {
 
     private DataAccessObject dao;
     private JTable journalsTable;
@@ -22,6 +25,7 @@ public class JournalsPanel extends JPanel {
     private JComboBox sortByComboBox;
     private CardsPanel cardsPanel;
     private JournalViewPanel journalViewPanel;
+    private JLabel numEntriesLabel, totalDurationLabel, numJournalsLabel;
 
     public JournalsPanel(CardsPanel cardsPanel, JournalViewPanel journalViewPanel) {
         this.cardsPanel = cardsPanel;
@@ -33,7 +37,8 @@ public class JournalsPanel extends JPanel {
         setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
         journalsTableModel = new JournalsTableModel();
-        dao.addJournalDataChangeListener(journalsTableModel);
+        //dao.addJournalDataChangeListener(journalsTableModel);
+        dao.addJournalDataChangeListener(this);
         journalsTable = new JTable(journalsTableModel);
         JScrollPane journalsTableScrollPane = new JScrollPane(journalsTable);
         journalsTable.setPreferredScrollableViewportSize(new Dimension(900, 300));
@@ -44,6 +49,15 @@ public class JournalsPanel extends JPanel {
         sortByComboBox.addActionListener(new SortByComboBoxListener());
         sortByPanel.add(new JLabel("Sort By: "));
         sortByPanel.add(sortByComboBox);
+        
+        numEntriesLabel = new JLabel("Total Entries: ");
+        totalDurationLabel = new JLabel("Total Duration: ");
+        numJournalsLabel = new JLabel("Num Journals: ");
+        Box summaryDataLabelsBox = Box.createVerticalBox();
+        summaryDataLabelsBox.add(numEntriesLabel);
+        summaryDataLabelsBox.add(totalDurationLabel);
+        summaryDataLabelsBox.add(numJournalsLabel);
+        updateSummaryDataLabels();
 
         JPanel buttonsPanel = new JPanel();
 
@@ -60,8 +74,29 @@ public class JournalsPanel extends JPanel {
         buttonsPanel.add(viewJournalButton);
 
         add(sortByPanel);
+        add(summaryDataLabelsBox);
         add(journalsTableScrollPane);
         add(buttonsPanel);
+    }
+    
+    public void dataChanged() {
+        // a journal's data has changed, tell the table model (which is owned by this
+        // panel) to update its data and also update the summary data labels
+        journalsTableModel.updateData();
+        updateSummaryDataLabels();
+    }
+    
+    private void updateSummaryDataLabels() {
+        ResultSet rs = dao.getAllJournalsSummaryData();
+        try {
+            while (rs.next()) {
+                numEntriesLabel.setText("Total Entries: " + rs.getInt("journal_entries_count"));
+                totalDurationLabel.setText("Total Duration: " + Utility.getHourMinDuration(rs.getInt("total_duration")));
+                numJournalsLabel.setText("Journals Count: " + rs.getInt("journals_count"));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public class CreateNewJournalButtonListener implements ActionListener {
@@ -80,8 +115,7 @@ public class JournalsPanel extends JPanel {
             }
 
             dao.createNewJournal(journalName);
-            journalsTableModel.updateData(); // table model needs to be told there
-            // is new data to display
+            dataChanged();
         }
     }
 
@@ -100,8 +134,7 @@ public class JournalsPanel extends JPanel {
             if (dialogResult == JOptionPane.YES_OPTION) {
                 // delete the journal from the database
                 dao.deleteJournal(journalsTableModel.getJournalID(selectedRow));
-                journalsTableModel.updateData(); // table model needs to be told the
-                // data it is to display has changed
+                dataChanged();
             }
         }
     }
@@ -128,8 +161,8 @@ public class JournalsPanel extends JPanel {
             DataAccessObject.SortJournalBy sortBy = (DataAccessObject.SortJournalBy) sortByComboBox.getSelectedItem();
             journalsTableModel.setDataSortingMethod(sortBy);
             journalsTableModel.updateData(); // table model needs to be told the
-            // data it is to display has changed
-            //System.out.println("sort by = " + sortBy);
+            // data it is to display has changed (don't need to update the journals summary
+            // data since this won't be affected so don't need to call dataChanged())
         }
     }
 }

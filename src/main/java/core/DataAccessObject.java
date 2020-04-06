@@ -44,6 +44,28 @@ public class DataAccessObject {
         journalDataChangeListeners.add(listener);
     }
 
+    /*
+    * returns the summary data for all journals stored in the system. This
+    * includes the total number of journal entries, total duration of
+    * journal entries and total number of journals.
+    */
+    public ResultSet getAllJournalsSummaryData() {
+        String query = "SELECT COUNT(journalentries.id) as journal_entries_count,"
+                + " SUM(journalentries.duration) as total_duration,"
+                + " COUNT(DISTINCT(journals.id)) as journals_count"
+                + " FROM journals LEFT OUTER JOIN journalentries"
+                + " ON journals.id = journalentries.journal_id;";
+        // execute the query
+        ResultSet rs = null;
+        try {
+            Statement statement = db.createStatement();
+            rs = statement.executeQuery(query);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return rs;
+    }
+
     public enum SortJournalBy {
         NAME_ASC, NAME_DESC, DURATION_ASC, DURATION_DESC, ENTRIES_ASC, ENTRIES_DESC
     };
@@ -100,7 +122,7 @@ public class DataAccessObject {
             e.printStackTrace();
         }
     }
-    
+
     public void deleteJournal(int journalID) {
         String query = "DELETE FROM journals WHERE id = ?;";
         try {
@@ -112,7 +134,7 @@ public class DataAccessObject {
             e.printStackTrace();
         }
     }
-    
+
     public ResultSet getJournalMetaData(int journalID) {
         String query = "SELECT journals.name AS journal_name, "
                 + "SUM(journalentries.duration) AS total_duration, "
@@ -173,7 +195,7 @@ public class DataAccessObject {
         }
         return rs;
     }
-    
+
     public void deleteJournalEntry(int journalEntryID) {
         String query = "DELETE FROM journalentries WHERE id = ?;";
         try {
@@ -186,10 +208,10 @@ public class DataAccessObject {
             e.printStackTrace();
         }
     }
-    
+
     public void addJournalEntry(int journalID, String date, String duration, String entry) {
         String query = "INSERT INTO journalentries(journal_id, date, duration, entry) "
-                + "VALUES(?,?,?,?);";      
+                + "VALUES(?,?,?,?);";
         try {
             PreparedStatement createJournalEntryStatement = db.prepareStatement(query);
             createJournalEntryStatement.setInt(1, journalID);
@@ -203,13 +225,13 @@ public class DataAccessObject {
             e.printStackTrace();
         }
     }
-    
+
     // returns true if one or more journal entries exist
     // in the database for the given journal on the given date
     public boolean checkJournalEntryExists(int journalID, String date) {
-        boolean ret = true; 
-        
-        String query = "SELECT * FROM journalentries WHERE journal_id = ? AND date = ?;";   
+        boolean ret = true;
+
+        String query = "SELECT * FROM journalentries WHERE journal_id = ? AND date = ?;";
         try {
             PreparedStatement statement = db.prepareStatement(query);
             statement.setInt(1, journalID);
@@ -223,10 +245,10 @@ public class DataAccessObject {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        
+
         return ret;
     }
-    
+
     public void updateJournalEntry(int journalEntryID, String date, String duration, String entry) {
         System.out.println("new prepared statement update journal being used");
         String query = "UPDATE journalentries SET "
@@ -236,7 +258,7 @@ public class DataAccessObject {
             updateJournalEntryStatement.setString(1, date);
             updateJournalEntryStatement.setString(2, duration);
             updateJournalEntryStatement.setString(3, entry);
-            updateJournalEntryStatement.setInt(4,journalEntryID);
+            updateJournalEntryStatement.setInt(4, journalEntryID);
             updateJournalEntryStatement.executeUpdate();
             updateJournalEntryStatement.close();
             notifyJournalDataChangeListeners();

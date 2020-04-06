@@ -266,7 +266,7 @@ public class JournalViewPanel extends JPanel implements JournalDataChangeListene
                 if (dialogResult == JOptionPane.NO_OPTION || dialogResult == JOptionPane.CLOSED_OPTION) {
                     return;
                 }
-            } 
+            }
             
             // add the journal entry to the database
             dao.addJournalEntry(journalID, dateFormattedForMysql, duration, entry);

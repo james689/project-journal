@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.swing.table.AbstractTableModel;
 
-public class JournalsTableModel extends AbstractTableModel implements JournalDataChangeListener {
+public class JournalsTableModel extends AbstractTableModel {
 
     private DataAccessObject.SortJournalBy dataSortingMethod; // how the table model will sort the data it stores
     private List<String[]> data;
@@ -91,7 +91,7 @@ public class JournalsTableModel extends AbstractTableModel implements JournalDat
     
     // the data of a journal has changed e.g. a journal entry may have been added/deleted
     // so update the data this table is displaying
-    public void dataChanged() {
+    /*public void dataChanged() {
         updateData();
-    }
+    }*/
 }
