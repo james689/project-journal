@@ -1,15 +1,20 @@
 package gui;
 
 import core.DataAccessObject;
+import core.Utility;
 import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.table.AbstractTableModel;
 
+/**
+ * The data model for the JournalsTable that is displayed on the 
+ * Journals screen.
+ */
 public class JournalsTableModel extends AbstractTableModel {
 
-    private DataAccessObject.SortJournalBy dataSortingMethod; // how the table model will sort the data it stores
-    private List<String[]> data;
+    private DataAccessObject.SortJournalBy dataSortingMethod; 
+    private List<String[]> data; // each String[] represents one row in the table
     private String[] tableHeaders = {"journal id", "journal name", "duration", "# entries"};
 
     public JournalsTableModel() {
@@ -68,9 +73,9 @@ public class JournalsTableModel extends AbstractTableModel {
         fireTableDataChanged();
     }
 
+    // retrieves the data from the database
     private List<String[]> getData() {
         List<String[]> theData = new ArrayList<>();
-        // get the data from database
         DataAccessObject dao = DataAccessObject.getInstance();
         ResultSet rs = dao.getJournals(dataSortingMethod);
         try {
@@ -79,20 +84,13 @@ public class JournalsTableModel extends AbstractTableModel {
                 String journalName = rs.getString("name");
                 int journalDurationMins = rs.getInt("total_duration");
                 String numEntries = rs.getString("num_entries");
-                theData.add(new String[]{journalID, journalName, getHourMinDuration(journalDurationMins), numEntries});
+                theData.add(new String[]{journalID, journalName, 
+                    Utility.getHourMinDuration(journalDurationMins), numEntries});
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
 
         return theData;
-    }
-
-    // converts minutes into hours and minutes e.g. if mins = 75 then
-    // return value will be "1 hour 15 mins"
-    private static String getHourMinDuration(int mins) {
-        int durationHours = mins / 60;
-        int durationMins = mins % 60;
-        return durationHours + " hours " + durationMins + " mins";
     }
 }
