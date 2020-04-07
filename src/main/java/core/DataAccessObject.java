@@ -14,6 +14,10 @@ import javax.swing.JOptionPane;
 // (in this case a MySQL database)
 public class DataAccessObject {
 
+    private static final String DATABASE_URL = "jdbc:mysql://localhost:3306/learning_journal?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC";
+    private static final String USERNAME = "root";
+    private static final String PASSWORD = "bunslow121";
+    
     private static DataAccessObject instance; // the single instance of the DataAccessObject
     private Connection db; // the connection to the database
     private List<JournalDataChangeListener> journalDataChangeListeners; // listeners that
@@ -25,9 +29,7 @@ public class DataAccessObject {
         journalDataChangeListeners = new ArrayList<>();
         try {
             // Allocate a database 'Connection' object
-            db = DriverManager.getConnection(
-                    "jdbc:mysql://localhost:3306/learning_journal?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC",
-                    "root", "bunslow121");
+            db = DriverManager.getConnection(DATABASE_URL, USERNAME, PASSWORD);
         } catch (Exception e) {
             // shut the program down if a database connection cannot be established
             // since the program is useless without being able to access the database
