@@ -5,37 +5,118 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.JOptionPane;
 
 // This object is used to access and manipulate data from the data source
-// (in this case a MySQL database)
 public class DataAccessObject {
 
-    private static final String DATABASE_URL = "jdbc:mysql://localhost:3306/learning_journal?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC";
-    private static final String USERNAME = "root";
-    private static final String PASSWORD = "bunslow121";
-    
+    private static final String DATABASE_URL = "jdbc:derby:learningjournal;";
+
     private static DataAccessObject instance; // the single instance of the DataAccessObject
-    private Connection db; // the connection to the database
+    private Connection dbConnection; // the connection to the database
     private List<JournalDataChangeListener> journalDataChangeListeners; // listeners that
     // will be notified when journal data is changed, such as when a new entry is added to
     // a journal or an entry is deleted from a journal.
-    
-    // constructor is private, DataAccessObject is a singleton
-    private DataAccessObject() {
-        journalDataChangeListeners = new ArrayList<>();
+
+    private static void setDBSystemDir() {
+        // Decide on the db system directory: <userhome>/.projectjournals/
+        String userHomeDir = System.getProperty("user.home", ".");
+        System.out.println("userHomeDir = " + userHomeDir);
+        String systemDir = userHomeDir + "\\.projectjournals";
+        System.out.println("systemDir = " + systemDir);
+        // Set the db system directory.
+        System.setProperty("derby.system.home", systemDir);
+    }
+
+    // checks to see whether the database already exists or not
+    // by attempting to create a connection to it. If cannot connect
+    // to the database, assume that it doesn't exist. (I'll probably
+    // need to improve this check in the future as its too simple minded)
+    private boolean databaseExists() {
         try {
-            // Allocate a database 'Connection' object
-            db = DriverManager.getConnection(DATABASE_URL, USERNAME, PASSWORD);
+            DriverManager.getConnection(DATABASE_URL);
+            return true;
+        } catch (SQLException ex) {
+            return false;
+        }
+    }
+
+    // this method is executed when the program is run for the very first time
+    // and there is no pre-existing database.
+    private void createDatabase() {
+        try {
+            Connection connection = DriverManager.getConnection(DATABASE_URL + "create=true");
+            System.out.println("created database");
+            createTables(connection);
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            // shut the program down if the database cannot be created 
+            // since the program is useless without being able to access the database
+            JOptionPane.showMessageDialog(null, "Could not create database, exiting...");
+            System.exit(1);
+        }
+    }
+
+    // creates the database tables
+    private void createTables(Connection connection) {
+        try {
+            Statement statement = connection.createStatement();
+            
+            String query = "CREATE TABLE journals("
+                    + "id INTEGER NOT NULL PRIMARY KEY GENERATED ALWAYS AS IDENTITY (START WITH 1, INCREMENT BY 1),"
+                    + " name CHAR(254) NOT NULL)";
+            
+            statement.execute(query);
+            System.out.println("created journals table");
+            
+            query = "CREATE TABLE journalentries("
+                    + "id INTEGER NOT NULL PRIMARY KEY GENERATED ALWAYS AS IDENTITY (START WITH 1, INCREMENT BY 1),"
+                    + " journal_id INTEGER NOT NULL,"
+                    + " date DATE NOT NULL,"
+                    + " duration INTEGER NOT NULL,"
+                    + " entry LONG VARCHAR NOT NULL)";
+            
+            statement.execute(query);
+            System.out.println("created journal entries table");
         } catch (Exception e) {
+            System.out.println("error creating database tables");
+            e.printStackTrace();
+        }
+    }
+
+    private void connectToDatabase() {
+        try {
+            dbConnection = DriverManager.getConnection(DATABASE_URL);
+            System.out.println("connected to database");
+        } catch (SQLException ex) {
+            ex.printStackTrace();
             // shut the program down if a database connection cannot be established
             // since the program is useless without being able to access the database
             JOptionPane.showMessageDialog(null, "Could not initialize database, exiting...");
             System.exit(1);
         }
+    }
+
+    // constructor is private, DataAccessObject is a singleton
+    private DataAccessObject() {
+        System.out.println("data access object constructor invoked");
+        journalDataChangeListeners = new ArrayList<>();
+
+        setDBSystemDir(); // make sure the database is set up in the correct directory
+
+        if (!databaseExists()) {
+            System.out.println("no database found, creating database...");
+            createDatabase(); // create the database if it doesn't exist
+        } else {
+            System.out.println("found existing database");
+        }
+
+        connectToDatabase(); // establish a connection to the database and use the
+        // connection for all future SQL statements
     }
 
     public static DataAccessObject getInstance() {
@@ -53,7 +134,7 @@ public class DataAccessObject {
     * returns the summary data for all journals stored in the system. This
     * includes the total number of journal entries, total duration of
     * journal entries and total number of journals.
-    */
+     */
     public ResultSet getAllJournalsSummaryData() {
         String query = "SELECT COUNT(journalentries.id) as journal_entries_count,"
                 + " SUM(journalentries.duration) as total_duration,"
@@ -62,7 +143,7 @@ public class DataAccessObject {
                 + " ON journals.id = journalentries.journal_id;";
         ResultSet rs = null;
         try {
-            Statement statement = db.createStatement();
+            Statement statement = dbConnection.createStatement();
             rs = statement.executeQuery(query);
         } catch (Exception e) {
             e.printStackTrace();
@@ -106,7 +187,7 @@ public class DataAccessObject {
         query += ("ORDER BY " + orderBy + ";");
         ResultSet rs = null;
         try {
-            Statement statement = db.createStatement();
+            Statement statement = dbConnection.createStatement();
             rs = statement.executeQuery(query);
         } catch (Exception e) {
             e.printStackTrace();
@@ -118,7 +199,7 @@ public class DataAccessObject {
     public void createNewJournal(String journalName) {
         String query = "INSERT INTO journals(name) VALUES(?);";
         try {
-            PreparedStatement createJournalStatement = db.prepareStatement(query);
+            PreparedStatement createJournalStatement = dbConnection.prepareStatement(query);
             createJournalStatement.setString(1, journalName);
             createJournalStatement.executeUpdate();
             createJournalStatement.close();
@@ -130,7 +211,7 @@ public class DataAccessObject {
     public void deleteJournal(int journalID) {
         String query = "DELETE FROM journals WHERE id = ?;";
         try {
-            PreparedStatement deleteJournalStatement = db.prepareStatement(query);
+            PreparedStatement deleteJournalStatement = dbConnection.prepareStatement(query);
             deleteJournalStatement.setInt(1, journalID);
             deleteJournalStatement.executeUpdate();
             deleteJournalStatement.close();
@@ -150,7 +231,7 @@ public class DataAccessObject {
                 + "WHERE journals.id = ?;";
         ResultSet rs = null;
         try {
-            PreparedStatement getJournalMetaDataStatement = db.prepareStatement(query);
+            PreparedStatement getJournalMetaDataStatement = dbConnection.prepareStatement(query);
             getJournalMetaDataStatement.setInt(1, journalID);
             rs = getJournalMetaDataStatement.executeQuery();
         } catch (Exception e) {
@@ -190,7 +271,7 @@ public class DataAccessObject {
         // execute the query
         ResultSet rs = null;
         try {
-            PreparedStatement getJournalEntriesStatement = db.prepareStatement(query);
+            PreparedStatement getJournalEntriesStatement = dbConnection.prepareStatement(query);
             getJournalEntriesStatement.setInt(1, journalID);
             rs = getJournalEntriesStatement.executeQuery();
         } catch (Exception e) {
@@ -202,7 +283,7 @@ public class DataAccessObject {
     public void deleteJournalEntry(int journalEntryID) {
         String query = "DELETE FROM journalentries WHERE id = ?;";
         try {
-            PreparedStatement deleteJournalEntryStatement = db.prepareStatement(query);
+            PreparedStatement deleteJournalEntryStatement = dbConnection.prepareStatement(query);
             deleteJournalEntryStatement.setInt(1, journalEntryID);
             deleteJournalEntryStatement.executeUpdate();
             deleteJournalEntryStatement.close();
@@ -216,7 +297,7 @@ public class DataAccessObject {
         String query = "INSERT INTO journalentries(journal_id, date, duration, entry) "
                 + "VALUES(?,?,?,?);";
         try {
-            PreparedStatement createJournalEntryStatement = db.prepareStatement(query);
+            PreparedStatement createJournalEntryStatement = dbConnection.prepareStatement(query);
             createJournalEntryStatement.setInt(1, journalID);
             createJournalEntryStatement.setString(2, date);
             createJournalEntryStatement.setString(3, duration);
@@ -236,7 +317,7 @@ public class DataAccessObject {
 
         String query = "SELECT * FROM journalentries WHERE journal_id = ? AND date = ?;";
         try {
-            PreparedStatement statement = db.prepareStatement(query);
+            PreparedStatement statement = dbConnection.prepareStatement(query);
             statement.setInt(1, journalID);
             statement.setString(2, date);
             ResultSet rs = statement.executeQuery();
@@ -256,7 +337,7 @@ public class DataAccessObject {
         String query = "UPDATE journalentries SET "
                 + "date = ?, duration = ?, entry = ? WHERE id = ?;";
         try {
-            PreparedStatement updateJournalEntryStatement = db.prepareStatement(query);
+            PreparedStatement updateJournalEntryStatement = dbConnection.prepareStatement(query);
             updateJournalEntryStatement.setString(1, date);
             updateJournalEntryStatement.setString(2, duration);
             updateJournalEntryStatement.setString(3, entry);
