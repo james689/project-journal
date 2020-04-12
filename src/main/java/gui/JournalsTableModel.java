@@ -93,4 +93,13 @@ public class JournalsTableModel extends AbstractTableModel {
 
         return theData;
     }
+    
+    /*private List<String[]> getData() {
+        List<String[]> theData = new ArrayList<>();
+        theData.add(new String[]{"journal id", "journal name", "journal duration", "num entries"});
+        DataAccessObject dao = DataAccessObject.getInstance();
+        ResultSet rs = dao.getJournals(dataSortingMethod);
+
+        return theData;
+    }*/
 }

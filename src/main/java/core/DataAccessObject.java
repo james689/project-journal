@@ -22,6 +22,7 @@ public class DataAccessObject {
     // will be notified when journal data is changed, such as when a new entry is added to
     // a journal or an entry is deleted from a journal.
 
+    // points Java DB to the directory the database is located in
     private static void setDBSystemDir() {
         // Decide on the db system directory: <userhome>/.projectjournals/
         String userHomeDir = System.getProperty("user.home", ".");
@@ -65,21 +66,21 @@ public class DataAccessObject {
     private void createTables(Connection connection) {
         try {
             Statement statement = connection.createStatement();
-            
+
             String query = "CREATE TABLE journals("
                     + "id INTEGER NOT NULL PRIMARY KEY GENERATED ALWAYS AS IDENTITY (START WITH 1, INCREMENT BY 1),"
                     + " name CHAR(254) NOT NULL)";
-            
+
             statement.execute(query);
             System.out.println("created journals table");
-            
+
             query = "CREATE TABLE journalentries("
                     + "id INTEGER NOT NULL PRIMARY KEY GENERATED ALWAYS AS IDENTITY (START WITH 1, INCREMENT BY 1),"
                     + " journal_id INTEGER NOT NULL,"
                     + " date DATE NOT NULL,"
                     + " duration INTEGER NOT NULL,"
                     + " entry LONG VARCHAR NOT NULL)";
-            
+
             statement.execute(query);
             System.out.println("created journal entries table");
         } catch (Exception e) {
@@ -129,18 +130,22 @@ public class DataAccessObject {
     public void addJournalDataChangeListener(JournalDataChangeListener listener) {
         journalDataChangeListeners.add(listener);
     }
+    
+    /////////////////// statements /////////////////////////////////
+    
+    ////////// journals statements //////////////////
 
     /*
     * returns the summary data for all journals stored in the system. This
     * includes the total number of journal entries, total duration of
     * journal entries and total number of journals.
-     */
+    */
     public ResultSet getAllJournalsSummaryData() {
         String query = "SELECT COUNT(journalentries.id) as journal_entries_count,"
                 + " SUM(journalentries.duration) as total_duration,"
                 + " COUNT(DISTINCT(journals.id)) as journals_count"
                 + " FROM journals LEFT OUTER JOIN journalentries"
-                + " ON journals.id = journalentries.journal_id;";
+                + " ON journals.id = journalentries.journal_id";
         ResultSet rs = null;
         try {
             Statement statement = dbConnection.createStatement();
@@ -150,6 +155,27 @@ public class DataAccessObject {
         }
         return rs;
     }
+    
+    /*
+    * returns the summary data for all journals stored in the system. This
+    * includes the total number of journal entries, total duration of
+    * journal entries and total number of journals.
+     */
+    /*public ResultSet getAllJournalsSummaryData() {
+        String query = "SELECT COUNT(journalentries.id) as journal_entries_count,"
+                + " SUM(journalentries.duration) as total_duration,"
+                + " COUNT(DISTINCT(journals.id)) as journals_count"
+                + " FROM journals LEFT OUTER JOIN journalentries"
+                + " ON journals.id = journalentries.journal_id";
+        
+        ResultSet rs = null;
+        try (Statement statement = dbConnection.createStatement()) {
+            rs = statement.executeQuery(query);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return rs;
+    }*/
 
     public enum SortJournalBy {
         NAME_ASC, NAME_DESC, DURATION_ASC, DURATION_DESC, ENTRIES_ASC, ENTRIES_DESC
@@ -158,11 +184,12 @@ public class DataAccessObject {
     // returns all journals stored in the system
     // sorted according to the sort by value
     public ResultSet getJournals(SortJournalBy value) {
-        String query = "SELECT journals.id, journals.name, SUM(journalentries.duration) AS total_duration, "
+        String query = "SELECT journals.id, journals.name, " + 
+                "SUM(journalentries.duration) AS total_duration, "
                 + "COUNT(journalentries.id) AS num_entries "
                 + "FROM journals LEFT OUTER JOIN journalentries "
                 + "ON journals.id = journalentries.journal_id "
-                + "GROUP BY journals.id ";
+                + "GROUP BY journals.id, journals.name ";
         String orderBy = "";
         switch (value) {
             case NAME_ASC:
@@ -184,7 +211,8 @@ public class DataAccessObject {
                 orderBy = "num_entries DESC";
                 break;
         }
-        query += ("ORDER BY " + orderBy + ";");
+        query += ("ORDER BY " + orderBy);
+        System.out.println(query);
         ResultSet rs = null;
         try {
             Statement statement = dbConnection.createStatement();
@@ -197,7 +225,7 @@ public class DataAccessObject {
 
     // creates a new journal with the given name
     public void createNewJournal(String journalName) {
-        String query = "INSERT INTO journals(name) VALUES(?);";
+        String query = "INSERT INTO journals(name) VALUES(?)";
         try {
             PreparedStatement createJournalStatement = dbConnection.prepareStatement(query);
             createJournalStatement.setString(1, journalName);
@@ -209,7 +237,7 @@ public class DataAccessObject {
     }
 
     public void deleteJournal(int journalID) {
-        String query = "DELETE FROM journals WHERE id = ?;";
+        String query = "DELETE FROM journals WHERE id = ?";
         try {
             PreparedStatement deleteJournalStatement = dbConnection.prepareStatement(query);
             deleteJournalStatement.setInt(1, journalID);
@@ -228,7 +256,8 @@ public class DataAccessObject {
                 + "COUNT(journalentries.id) AS num_entries "
                 + "FROM journals LEFT OUTER JOIN journalentries "
                 + "ON journals.id = journalentries.journal_id "
-                + "WHERE journals.id = ?;";
+                + "WHERE journals.id = ? " 
+                + "GROUP BY journals.name";
         ResultSet rs = null;
         try {
             PreparedStatement getJournalMetaDataStatement = dbConnection.prepareStatement(query);
@@ -239,6 +268,8 @@ public class DataAccessObject {
         }
         return rs;
     }
+    
+    //////////// journal entries statements /////////////////////////
 
     // options available for sorting a journal's entries
     public enum SortJournalEntryBy {
@@ -250,7 +281,9 @@ public class DataAccessObject {
     public ResultSet getJournalEntries(int journalID, SortJournalEntryBy sortBy) {
         // for DATE_FORMAT see https://www.w3schools.com/sql/func_mysql_date_format.asp
         // build the query
-        String query = "SELECT id, DATE_FORMAT(date, \"%d/%m/%Y\") AS date_formatted, "
+        /*String query = "SELECT id, DATE_FORMAT(date, \"%d/%m/%Y\") AS date_formatted, "
+                + "duration, entry FROM journalentries WHERE journal_id = ?";*/
+        String query = "SELECT id, date AS date_formatted, "
                 + "duration, entry FROM journalentries WHERE journal_id = ?";
         String orderBy = "";
         switch (sortBy) {
@@ -267,7 +300,7 @@ public class DataAccessObject {
                 orderBy = "duration DESC";
                 break;
         }
-        query += (" ORDER BY " + orderBy + ";");
+        query += (" ORDER BY " + orderBy);
         // execute the query
         ResultSet rs = null;
         try {
@@ -281,7 +314,7 @@ public class DataAccessObject {
     }
 
     public void deleteJournalEntry(int journalEntryID) {
-        String query = "DELETE FROM journalentries WHERE id = ?;";
+        String query = "DELETE FROM journalentries WHERE id = ?";
         try {
             PreparedStatement deleteJournalEntryStatement = dbConnection.prepareStatement(query);
             deleteJournalEntryStatement.setInt(1, journalEntryID);
@@ -295,7 +328,7 @@ public class DataAccessObject {
 
     public void addJournalEntry(int journalID, String date, String duration, String entry) {
         String query = "INSERT INTO journalentries(journal_id, date, duration, entry) "
-                + "VALUES(?,?,?,?);";
+                + "VALUES(?,?,?,?)";
         try {
             PreparedStatement createJournalEntryStatement = dbConnection.prepareStatement(query);
             createJournalEntryStatement.setInt(1, journalID);
@@ -315,7 +348,7 @@ public class DataAccessObject {
     public boolean checkJournalEntryExists(int journalID, String date) {
         boolean ret = true;
 
-        String query = "SELECT * FROM journalentries WHERE journal_id = ? AND date = ?;";
+        String query = "SELECT * FROM journalentries WHERE journal_id = ? AND date = ?";
         try {
             PreparedStatement statement = dbConnection.prepareStatement(query);
             statement.setInt(1, journalID);
@@ -335,7 +368,7 @@ public class DataAccessObject {
 
     public void updateJournalEntry(int journalEntryID, String date, String duration, String entry) {
         String query = "UPDATE journalentries SET "
-                + "date = ?, duration = ?, entry = ? WHERE id = ?;";
+                + "date = ?, duration = ?, entry = ? WHERE id = ?";
         try {
             PreparedStatement updateJournalEntryStatement = dbConnection.prepareStatement(query);
             updateJournalEntryStatement.setString(1, date);
