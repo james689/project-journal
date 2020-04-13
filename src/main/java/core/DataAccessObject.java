@@ -33,7 +33,7 @@ public class DataAccessObject {
         System.setProperty("derby.system.home", systemDir);
     }
 
-    // checks to see whether the database already exists or not
+    // checks to see whether the database already exists
     // by attempting to create a connection to it. If cannot connect
     // to the database, assume that it doesn't exist. (I'll probably
     // need to improve this check in the future as its too simple minded)
@@ -130,62 +130,102 @@ public class DataAccessObject {
     public void addJournalDataChangeListener(JournalDataChangeListener listener) {
         journalDataChangeListeners.add(listener);
     }
-    
-    /////////////////// statements /////////////////////////////////
-    
-    ////////// journals statements //////////////////
 
-    /*
-    * returns the summary data for all journals stored in the system. This
-    * includes the total number of journal entries, total duration of
-    * journal entries and total number of journals.
-    */
-    public ResultSet getAllJournalsSummaryData() {
-        String query = "SELECT COUNT(journalentries.id) as journal_entries_count,"
-                + " SUM(journalentries.duration) as total_duration,"
-                + " COUNT(DISTINCT(journals.id)) as journals_count"
-                + " FROM journals LEFT OUTER JOIN journalentries"
-                + " ON journals.id = journalentries.journal_id";
-        ResultSet rs = null;
-        try {
-            Statement statement = dbConnection.createStatement();
-            rs = statement.executeQuery(query);
-        } catch (Exception e) {
-            e.printStackTrace();
+    //////////////////// data classes ///////////////////////
+    
+    // classes used to transport data back to the client
+    
+    public static class JournalsSummaryData {
+        private int journalEntriesCount, totalDuration, journalsCount;
+        
+        public JournalsSummaryData(int journalEntriesCount, int totalDuration, int journalsCount) {
+            this.journalEntriesCount = journalEntriesCount;
+            this.totalDuration = totalDuration;
+            this.journalsCount = journalsCount;
         }
-        return rs;
+        
+        public int getJournalEntriesCount() { return journalEntriesCount; }
+        public int getTotalDuration() { return totalDuration; }
+        public int getJournalsCount() { return journalsCount; }
     }
+    
+    public static class JournalInfo {
+        private int id;
+        private String name;
+        private int duration;
+        private int numEntries;
+        
+        public JournalInfo(int id, String name, int duration, int numEntries) {
+            this.id = id;
+            this.name = name;
+            this.duration = duration;
+            this.numEntries = numEntries;
+        }
+        
+        public int getID() { return id; }
+        public String getName() { return name; }
+        public int getDuration() { return duration; }
+        public int getNumEntries() { return numEntries; }
+    }
+    
+    public static class JournalEntry {
+        private int id;
+        private String date;
+        private int duration;
+        private String entry;
+        
+        public JournalEntry(int id, String date, int duration, String entry) {
+            this.id = id;
+            this.date = date;
+            this.duration = duration;
+            this.entry = entry;
+        }
+        
+        public int getID() { return id; }
+        public String getDate() { return date; }
+        public int getDuration() { return duration; }
+        public String getEntry() { return entry; }
+    }
+    
+    ////////// journals operations //////////////////
     
     /*
     * returns the summary data for all journals stored in the system. This
     * includes the total number of journal entries, total duration of
     * journal entries and total number of journals.
      */
-    /*public ResultSet getAllJournalsSummaryData() {
+    public JournalsSummaryData getAllJournalsSummaryData() {
         String query = "SELECT COUNT(journalentries.id) as journal_entries_count,"
                 + " SUM(journalentries.duration) as total_duration,"
                 + " COUNT(DISTINCT(journals.id)) as journals_count"
                 + " FROM journals LEFT OUTER JOIN journalentries"
                 + " ON journals.id = journalentries.journal_id";
+
+        JournalsSummaryData jsd = null;
         
-        ResultSet rs = null;
         try (Statement statement = dbConnection.createStatement()) {
-            rs = statement.executeQuery(query);
+            ResultSet rs = statement.executeQuery(query);
+            while (rs.next()) {
+                int journalEntriesCount = rs.getInt("journal_entries_count");
+                int totalDuration = rs.getInt("total_duration");
+                int journalsCount = rs.getInt("journals_count");
+                jsd = new JournalsSummaryData(journalEntriesCount,totalDuration,journalsCount);
+            }
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return rs;
-    }*/
-
+        return jsd;
+    }
+        
     public enum SortJournalBy {
         NAME_ASC, NAME_DESC, DURATION_ASC, DURATION_DESC, ENTRIES_ASC, ENTRIES_DESC
     };
-
-    // returns all journals stored in the system
-    // sorted according to the sort by value
-    public ResultSet getJournals(SortJournalBy value) {
-        String query = "SELECT journals.id, journals.name, " + 
-                "SUM(journalentries.duration) AS total_duration, "
+    
+    // returns all journals stored in the system sorted according to the sort by value
+    public List<JournalInfo> getJournals(SortJournalBy value) {
+        String query = "SELECT journals.id AS journal_id, " 
+                + "journals.name AS journal_name, "
+                + "SUM(journalentries.duration) AS total_duration, "
                 + "COUNT(journalentries.id) AS num_entries "
                 + "FROM journals LEFT OUTER JOIN journalentries "
                 + "ON journals.id = journalentries.journal_id "
@@ -213,78 +253,89 @@ public class DataAccessObject {
         }
         query += ("ORDER BY " + orderBy);
         System.out.println(query);
-        ResultSet rs = null;
-        try {
-            Statement statement = dbConnection.createStatement();
-            rs = statement.executeQuery(query);
-        } catch (Exception e) {
+        
+        List<JournalInfo> ret = new ArrayList<>();
+        
+        try (Statement statement = dbConnection.createStatement()) {
+            ResultSet rs = statement.executeQuery(query);
+            while (rs.next()) {
+                int id = rs.getInt("journal_id");
+                String name = rs.getString("journal_name");
+                int duration = rs.getInt("total_duration");
+                int numEntries = rs.getInt("num_entries");
+                ret.add(new JournalInfo(id,name,duration,numEntries));
+            }
+        } catch (SQLException e) {
             e.printStackTrace();
         }
-        return rs;
+        return ret;
     }
-
+    
     // creates a new journal with the given name
-    public void createNewJournal(String journalName) {
+    public void createJournal(String journalName) {
         String query = "INSERT INTO journals(name) VALUES(?)";
-        try {
-            PreparedStatement createJournalStatement = dbConnection.prepareStatement(query);
-            createJournalStatement.setString(1, journalName);
-            createJournalStatement.executeUpdate();
-            createJournalStatement.close();
-        } catch (Exception e) {
+        try (PreparedStatement stmt = dbConnection.prepareStatement(query)) {
+            stmt.setString(1, journalName);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
             e.printStackTrace();
         }
     }
 
     public void deleteJournal(int journalID) {
         String query = "DELETE FROM journals WHERE id = ?";
-        try {
-            PreparedStatement deleteJournalStatement = dbConnection.prepareStatement(query);
-            deleteJournalStatement.setInt(1, journalID);
-            deleteJournalStatement.executeUpdate();
-            deleteJournalStatement.close();
-        } catch (Exception e) {
+        try (PreparedStatement stmt = dbConnection.prepareStatement(query)) {
+            stmt.setInt(1, journalID);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
             e.printStackTrace();
         }
     }
-
+    
     // returns the meta data for a journal, including the journal's
     // name, duration and number of entries
-    public ResultSet getJournalMetaData(int journalID) {
+    public JournalInfo getJournalMetaData(int journalID) {
         String query = "SELECT journals.name AS journal_name, "
                 + "SUM(journalentries.duration) AS total_duration, "
                 + "COUNT(journalentries.id) AS num_entries "
                 + "FROM journals LEFT OUTER JOIN journalentries "
                 + "ON journals.id = journalentries.journal_id "
-                + "WHERE journals.id = ? " 
+                + "WHERE journals.id = ? "
                 + "GROUP BY journals.name";
-        ResultSet rs = null;
-        try {
-            PreparedStatement getJournalMetaDataStatement = dbConnection.prepareStatement(query);
-            getJournalMetaDataStatement.setInt(1, journalID);
-            rs = getJournalMetaDataStatement.executeQuery();
-        } catch (Exception e) {
+        
+        JournalInfo ret = null;
+        
+        try (PreparedStatement stmt = dbConnection.prepareStatement(query)) {
+            stmt.setInt(1, journalID);
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                String name = rs.getString("journal_name");
+                int duration = rs.getInt("total_duration");
+                int numEntries = rs.getInt("num_entries");
+                ret = new JournalInfo(journalID,name,duration,numEntries);
+            }
+        } catch (SQLException e) {
             e.printStackTrace();
         }
-        return rs;
+        return ret;
     }
-    
-    //////////// journal entries statements /////////////////////////
 
+    //////////// journal entries operations /////////////////////////
+    
     // options available for sorting a journal's entries
     public enum SortJournalEntryBy {
         DATE_ASC, DATE_DESC, DURATION_ASC, DURATION_DESC
     };
-
+    
     // returns all journal entries for the journal with the given journalID
     // ordered according to the sortBy option
-    public ResultSet getJournalEntries(int journalID, SortJournalEntryBy sortBy) {
+    public List<JournalEntry> getJournalEntries(int journalID, SortJournalEntryBy sortBy) {
         // for DATE_FORMAT see https://www.w3schools.com/sql/func_mysql_date_format.asp
         // build the query
         /*String query = "SELECT id, DATE_FORMAT(date, \"%d/%m/%Y\") AS date_formatted, "
                 + "duration, entry FROM journalentries WHERE journal_id = ?";*/
-        String query = "SELECT id, date AS date_formatted, "
-                + "duration, entry FROM journalentries WHERE journal_id = ?";
+        String query = "SELECT id, date AS date_formatted, duration, entry" +
+                " FROM journalentries WHERE journal_id = ?";
         String orderBy = "";
         switch (sortBy) {
             case DATE_ASC:
@@ -301,51 +352,54 @@ public class DataAccessObject {
                 break;
         }
         query += (" ORDER BY " + orderBy);
-        // execute the query
-        ResultSet rs = null;
-        try {
-            PreparedStatement getJournalEntriesStatement = dbConnection.prepareStatement(query);
-            getJournalEntriesStatement.setInt(1, journalID);
-            rs = getJournalEntriesStatement.executeQuery();
-        } catch (Exception e) {
+        
+        List<JournalEntry> journalEntries = new ArrayList<>();
+        
+        try (PreparedStatement stmt = dbConnection.prepareStatement(query)) {
+            stmt.setInt(1, journalID);
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                int id = rs.getInt("id");
+                String date = rs.getString("date_formatted");
+                int duration = rs.getInt("duration");
+                String entry = rs.getString("entry");
+                journalEntries.add(new JournalEntry(id,date,duration,entry));
+            }
+        } catch (SQLException e) {
             e.printStackTrace();
         }
-        return rs;
+        return journalEntries;
+    }
+
+    public void createJournalEntry(int journalID, String date, String duration, String entry) {
+        String query = "INSERT INTO journalentries(journal_id, date, duration, entry) "
+                + "VALUES(?,?,?,?)";
+        try (PreparedStatement stmt = dbConnection.prepareStatement(query)) {
+            stmt.setInt(1, journalID);
+            stmt.setString(2, date);
+            stmt.setString(3, duration);
+            stmt.setString(4, entry);
+            stmt.executeUpdate();
+            notifyJournalDataChangeListeners();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     public void deleteJournalEntry(int journalEntryID) {
         String query = "DELETE FROM journalentries WHERE id = ?";
-        try {
-            PreparedStatement deleteJournalEntryStatement = dbConnection.prepareStatement(query);
-            deleteJournalEntryStatement.setInt(1, journalEntryID);
-            deleteJournalEntryStatement.executeUpdate();
-            deleteJournalEntryStatement.close();
+        try (PreparedStatement stmt = dbConnection.prepareStatement(query)) {
+            stmt.setInt(1, journalEntryID);
+            stmt.executeUpdate();
             notifyJournalDataChangeListeners();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void addJournalEntry(int journalID, String date, String duration, String entry) {
-        String query = "INSERT INTO journalentries(journal_id, date, duration, entry) "
-                + "VALUES(?,?,?,?)";
-        try {
-            PreparedStatement createJournalEntryStatement = dbConnection.prepareStatement(query);
-            createJournalEntryStatement.setInt(1, journalID);
-            createJournalEntryStatement.setString(2, date);
-            createJournalEntryStatement.setString(3, duration);
-            createJournalEntryStatement.setString(4, entry);
-            createJournalEntryStatement.executeUpdate();
-            createJournalEntryStatement.close();
-            notifyJournalDataChangeListeners();
-        } catch (Exception e) {
+        } catch (SQLException e) {
             e.printStackTrace();
         }
     }
 
     // returns true if one or more journal entries exist
     // in the database for the given journal on the given date
-    public boolean checkJournalEntryExists(int journalID, String date) {
+    /*public boolean checkJournalEntryExists(int journalID, String date) {
         boolean ret = true;
 
         String query = "SELECT * FROM journalentries WHERE journal_id = ? AND date = ?";
@@ -364,21 +418,19 @@ public class DataAccessObject {
         }
 
         return ret;
-    }
-
+    }*/
+    
     public void updateJournalEntry(int journalEntryID, String date, String duration, String entry) {
         String query = "UPDATE journalentries SET "
                 + "date = ?, duration = ?, entry = ? WHERE id = ?";
-        try {
-            PreparedStatement updateJournalEntryStatement = dbConnection.prepareStatement(query);
-            updateJournalEntryStatement.setString(1, date);
-            updateJournalEntryStatement.setString(2, duration);
-            updateJournalEntryStatement.setString(3, entry);
-            updateJournalEntryStatement.setInt(4, journalEntryID);
-            updateJournalEntryStatement.executeUpdate();
-            updateJournalEntryStatement.close();
+        try (PreparedStatement stmt = dbConnection.prepareStatement(query)) {
+            stmt.setString(1, date);
+            stmt.setString(2, duration);
+            stmt.setString(3, entry);
+            stmt.setInt(4, journalEntryID);
+            stmt.executeUpdate();
             notifyJournalDataChangeListeners();
-        } catch (Exception e) {
+        } catch (SQLException e) {
             e.printStackTrace();
         }
     }

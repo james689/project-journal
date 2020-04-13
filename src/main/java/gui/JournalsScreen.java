@@ -5,7 +5,8 @@ import core.Utility;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.sql.ResultSet;
+import java.util.List;
+import java.util.Map;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -96,16 +97,11 @@ public class JournalsScreen extends JPanel implements JournalDataChangeListener 
     }
     
     private void updateSummaryDataLabels() {
-        ResultSet rs = dao.getAllJournalsSummaryData();
-        try {
-            while (rs.next()) {
-                numEntriesLabel.setText("Total Entries: " + rs.getInt("journal_entries_count"));
-                totalDurationLabel.setText("Total Duration: " + Utility.getHourMinDuration(rs.getInt("total_duration")));
-                numJournalsLabel.setText("Journals Count: " + rs.getInt("journals_count"));
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        DataAccessObject.JournalsSummaryData jsd = dao.getAllJournalsSummaryData();
+        
+        numEntriesLabel.setText("Total Entries: " + jsd.getJournalEntriesCount());
+        totalDurationLabel.setText("Total Duration: " + Utility.getHourMinDuration(jsd.getTotalDuration()));
+        numJournalsLabel.setText("Journals Count: " + jsd.getJournalsCount());
     }
     
     // inner class listeners
@@ -125,7 +121,7 @@ public class JournalsScreen extends JPanel implements JournalDataChangeListener 
                 return;
             }
 
-            dao.createNewJournal(journalName);
+            dao.createJournal(journalName);
             dataChanged();
         }
     }
