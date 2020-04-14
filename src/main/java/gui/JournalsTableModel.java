@@ -1,6 +1,7 @@
 package gui;
 
 import core.DataAccessObject;
+import core.Utility;
 import java.util.List;
 import javax.swing.table.AbstractTableModel;
 
@@ -41,7 +42,7 @@ public class JournalsTableModel extends AbstractTableModel {
             case 1:
                 return rowData.getName();
             case 2:
-                return rowData.getDuration();
+                return Utility.getHourMinDuration(rowData.getDuration());
             case 3:
                 return rowData.getNumEntries();
             default:

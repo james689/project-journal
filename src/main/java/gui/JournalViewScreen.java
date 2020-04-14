@@ -103,7 +103,7 @@ public class JournalViewScreen extends JPanel implements JournalDataChangeListen
         journalEntriesPanel.removeAll();
 
         for (JournalEntry entry : journalEntriesData) {
-            journalEntriesPanel.add(new JournalEntryPanel(entry.getID(), entry.getDate(), 
+            journalEntriesPanel.add(new JournalEntryPanel(entry.getID(), Utility.convertFromSQLDateFormat(entry.getDate()), 
                     entry.getDuration(), entry.getEntry()));
             journalEntriesPanel.add(Box.createRigidArea(new Dimension(5, 10)));
         }

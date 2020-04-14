@@ -33,4 +33,15 @@ public class Utility {
         
         return ret;
     }
+    
+    public static String convertFromSQLDateFormat(String aDate) {
+        // see https://stackoverflow.com/questions/3469507/how-can-i-change-the-date-format-in-java
+        DateTimeFormatter fIn = DateTimeFormatter.ofPattern("uuuu-MM-dd", Locale.UK);  // As a habit, specify the desired/expected locale, though in this case the locale is irrelevant.
+        LocalDate ld = LocalDate.parse(aDate, fIn);
+
+        DateTimeFormatter fOut = DateTimeFormatter.ofPattern("dd/MM/uuuu", Locale.UK);
+        String output = ld.format(fOut);
+        
+        return output;
+    }
 }
