@@ -1,7 +1,8 @@
 package gui;
 
-import core.DataAccessObject;
-import core.Utility;
+import data.JournalDataChangeListener;
+import data.DataAccessObject;
+import utility.Utility;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;

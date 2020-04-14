@@ -1,4 +1,4 @@
-package gui;
+package data;
 
 public interface JournalDataChangeListener {
     public void dataChanged();

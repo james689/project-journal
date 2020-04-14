@@ -1,7 +1,7 @@
 package gui;
 
-import core.DataAccessObject;
-import core.Utility;
+import data.DataAccessObject;
+import utility.Utility;
 import java.util.List;
 import javax.swing.table.AbstractTableModel;
 

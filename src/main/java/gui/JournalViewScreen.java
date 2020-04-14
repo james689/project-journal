@@ -1,9 +1,10 @@
 package gui;
 
-import core.DataAccessObject;
-import core.DataAccessObject.JournalEntry;
-import core.DataAccessObject.JournalInfo;
-import core.Utility;
+import data.JournalDataChangeListener;
+import data.DataAccessObject;
+import data.DataAccessObject.JournalEntry;
+import data.DataAccessObject.JournalInfo;
+import utility.Utility;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;

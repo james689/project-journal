@@ -1,6 +1,5 @@
-package core;
+package data;
 
-import gui.JournalDataChangeListener;
 import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
