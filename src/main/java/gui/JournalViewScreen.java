@@ -10,6 +10,7 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.sql.SQLException;
 import java.util.List;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -88,10 +89,21 @@ public class JournalViewScreen extends JPanel implements JournalDataChangeListen
     }
 
     private void refreshData() {
-        JournalInfo journalMetaData = dao.getJournalMetaData(journalID);
-        List<JournalEntry> journalEntriesData = dao.getJournalEntries(journalID, DataAccessObject.SortJournalEntryBy.DATE_ASC);
-        populateJournalMetaDataLabels(journalMetaData);
-        populateJournalEntriesPanel(journalEntriesData);
+        try {
+            JournalInfo journalMetaData = dao.getJournalMetaData(journalID);
+            populateJournalMetaDataLabels(journalMetaData);
+        } catch (SQLException e) {
+            System.out.println("could not get journal meta data");
+            e.printStackTrace();
+        }
+        
+        try {
+            List<JournalEntry> journalEntriesData = dao.getJournalEntries(journalID, DataAccessObject.SortJournalEntryBy.DATE_ASC);
+            populateJournalEntriesPanel(journalEntriesData);
+        } catch (SQLException e) {
+            System.out.println("could not get journal entries data");
+            e.printStackTrace();
+        }
 
         // the screen must be revalidated and repainted to ensure
         // that the changes in journal entry data are visible.
@@ -104,7 +116,7 @@ public class JournalViewScreen extends JPanel implements JournalDataChangeListen
         journalEntriesPanel.removeAll();
 
         for (JournalEntry entry : journalEntriesData) {
-            journalEntriesPanel.add(new JournalEntryPanel(entry.getID(), Utility.convertFromSQLDateFormat(entry.getDate()), 
+            journalEntriesPanel.add(new JournalEntryPanel(entry.getID(), Utility.convertFromSQLDateFormat(entry.getDate()),
                     entry.getDuration(), entry.getEntry()));
             journalEntriesPanel.add(Box.createRigidArea(new Dimension(5, 10)));
         }
@@ -183,7 +195,13 @@ public class JournalViewScreen extends JPanel implements JournalDataChangeListen
                     "Delete confirmation", JOptionPane.YES_NO_OPTION);
             if (dialogResult == JOptionPane.YES_OPTION) {
                 // delete the journal entry from the database
-                dao.deleteJournalEntry(entryID);
+                try {
+                    dao.deleteJournalEntry(entryID);
+                } catch (SQLException e) {
+                    // inform user there was a problem with deleting the journal entry
+                    System.out.println("dear user: there was a problem with deleting the journal entry");
+                    e.printStackTrace();
+                }
             }
         }
 
@@ -203,7 +221,12 @@ public class JournalViewScreen extends JPanel implements JournalDataChangeListen
                 String dateFormattedForMysql = Utility.convertToMysqlDateFormat(date);
                 String duration = journalDataEntryPanel.getDuration();
                 String entry = journalDataEntryPanel.getEntry();
-                dao.updateJournalEntry(entryID, dateFormattedForMysql, duration, entry);
+                try {
+                    dao.updateJournalEntry(entryID, dateFormattedForMysql, duration, entry);
+                } catch (SQLException e) {
+                    System.out.println("error updating journal entry");
+                    e.printStackTrace();
+                }
             }
         }
     } // end JournalEntryPanel class
@@ -248,7 +271,12 @@ public class JournalViewScreen extends JPanel implements JournalDataChangeListen
                 }
             }*/
             // add the journal entry to the database
-            dao.createJournalEntry(journalID, dateFormattedForMysql, duration, entry);
+            try {
+                dao.createJournalEntry(journalID, dateFormattedForMysql, duration, entry);
+            } catch (SQLException ex) {
+                System.out.println("error creating journal entry");
+                ex.printStackTrace();
+            }
         }
     } // end class NewJournalEntryButtonListener
 } // end JournalViewScreen

@@ -1,17 +1,19 @@
 package gui;
 
 import data.DataAccessObject;
+import data.DataAccessObject.JournalInfo;
+import java.sql.SQLException;
 import utility.Utility;
 import java.util.List;
 import javax.swing.table.AbstractTableModel;
 
 /**
- * The data model for the JournalsTable that is displayed on the 
- * Journals screen.
+ * The data model for the JournalsTable that is displayed on the Journals
+ * screen.
  */
 public class JournalsTableModel extends AbstractTableModel {
 
-    private DataAccessObject.SortJournalBy dataSortingMethod; 
+    private DataAccessObject.SortJournalBy dataSortingMethod;
     private List<DataAccessObject.JournalInfo> data;
     private String[] tableHeaders = {"journal id", "journal name", "duration", "# entries"};
 
@@ -21,7 +23,6 @@ public class JournalsTableModel extends AbstractTableModel {
     }
 
     // standard table model methods
-    
     public String getColumnName(int i) {
         return tableHeaders[i];
     }
@@ -51,7 +52,6 @@ public class JournalsTableModel extends AbstractTableModel {
     }
 
     // table model methods specific to JournalsTableModel
-    
     public void setDataSortingMethod(DataAccessObject.SortJournalBy sortingMethod) {
         this.dataSortingMethod = sortingMethod;
     }
@@ -73,6 +73,13 @@ public class JournalsTableModel extends AbstractTableModel {
     // retrieves the data from the database
     private List<DataAccessObject.JournalInfo> getData() {
         DataAccessObject dao = DataAccessObject.getInstance();
-        return dao.getJournals(dataSortingMethod);
+        List<JournalInfo> ret = null;
+        try {
+            ret = dao.getJournals(dataSortingMethod);
+        } catch (SQLException e) {
+            System.out.println("error retrieving journals from database");
+            e.printStackTrace();
+        }
+        return ret;
     }
 }

@@ -6,8 +6,7 @@ import utility.Utility;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.List;
-import java.util.Map;
+import java.sql.SQLException;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -20,10 +19,10 @@ import javax.swing.JScrollPane;
 import javax.swing.JTable;
 
 /**
- * The JournalsScreen represents the GUI screen that shows all journals
- * stored in the system. It implements the JournalDataChangeListener interface 
- * so that it can be notified when a journal's data has changed and then refresh
- * it display of the data.
+ * The JournalsScreen represents the GUI screen that shows all journals stored
+ * in the system. It implements the JournalDataChangeListener interface so that
+ * it can be notified when a journal's data has changed and then refresh it
+ * display of the data.
  */
 public class JournalsScreen extends JPanel implements JournalDataChangeListener {
 
@@ -56,7 +55,7 @@ public class JournalsScreen extends JPanel implements JournalDataChangeListener 
         sortByComboBox.addActionListener(new SortByComboBoxListener());
         sortByPanel.add(new JLabel("Sort By: "));
         sortByPanel.add(sortByComboBox);
-        
+
         numEntriesLabel = new JLabel("Total Entries: ");
         totalDurationLabel = new JLabel("Total Duration: ");
         numJournalsLabel = new JLabel("Num Journals: ");
@@ -85,28 +84,30 @@ public class JournalsScreen extends JPanel implements JournalDataChangeListener 
         add(journalsTableScrollPane);
         add(buttonsPanel);
     }
-    
+
     /**
-     * This method is called when a journal's data has changed, for example
-     * a new entry has been added to the journal, an entry has been deleted
-     * from the journal etc. The panel then needs to update its display
-     * of the data.
+     * This method is called when a journal's data has changed, for example a
+     * new entry has been added to the journal, an entry has been deleted from
+     * the journal etc. The panel then needs to update its display of the data.
      */
     public void dataChanged() {
         journalsTableModel.updateData();
         updateSummaryDataLabels();
     }
-    
-    private void updateSummaryDataLabels() {
-        DataAccessObject.JournalsSummaryData jsd = dao.getAllJournalsSummaryData();
-        
-        numEntriesLabel.setText("Total Entries: " + jsd.getJournalEntriesCount());
-        totalDurationLabel.setText("Total Duration: " + Utility.getHourMinDuration(jsd.getTotalDuration()));
-        numJournalsLabel.setText("Journals Count: " + jsd.getJournalsCount());
-    }
-    
-    // inner class listeners
 
+    private void updateSummaryDataLabels() {
+        try {
+            DataAccessObject.JournalsSummaryData jsd = dao.getAllJournalsSummaryData();
+            numEntriesLabel.setText("Total Entries: " + jsd.getJournalEntriesCount());
+            totalDurationLabel.setText("Total Duration: " + Utility.getHourMinDuration(jsd.getTotalDuration()));
+            numJournalsLabel.setText("Journals Count: " + jsd.getJournalsCount());
+        } catch (SQLException e) {
+            System.out.println("error retrieving journals summary data");
+            e.printStackTrace();
+        }
+    }
+
+    // inner class listeners
     public class CreateNewJournalButtonListener implements ActionListener {
 
         public void actionPerformed(ActionEvent e) {
@@ -122,8 +123,13 @@ public class JournalsScreen extends JPanel implements JournalDataChangeListener 
                 return;
             }
 
-            dao.createJournal(journalName);
-            dataChanged();
+            try {
+                dao.createJournal(journalName);
+                dataChanged();
+            } catch (SQLException ex) {
+                System.out.println("error creating journal");
+                ex.printStackTrace();
+            }
         }
     }
 
@@ -141,8 +147,13 @@ public class JournalsScreen extends JPanel implements JournalDataChangeListener 
                     "Delete confirmation", JOptionPane.YES_NO_OPTION);
             if (dialogResult == JOptionPane.YES_OPTION) {
                 // delete the journal from the database
-                dao.deleteJournal(journalsTableModel.getJournalID(selectedRow));
-                dataChanged();
+                try {
+                    dao.deleteJournal(journalsTableModel.getJournalID(selectedRow));
+                    dataChanged();
+                } catch (SQLException ex) {
+                    System.out.println("error deleting journal");
+                    ex.printStackTrace();
+                }
             }
         }
     }
