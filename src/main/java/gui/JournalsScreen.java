@@ -1,11 +1,12 @@
 package gui;
 
-import core.DataAccessObject;
-import core.Utility;
+import data.JournalDataChangeListener;
+import data.DataAccessObject;
+import utility.Utility;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.sql.ResultSet;
+import java.sql.SQLException;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -18,10 +19,10 @@ import javax.swing.JScrollPane;
 import javax.swing.JTable;
 
 /**
- * The JournalsScreen represents the GUI screen that shows all journals
- * stored in the system. It implements the JournalDataChangeListener interface 
- * so that it can be notified when a journal's data has changed and then refresh
- * it display of the data.
+ * The JournalsScreen class represents the GUI screen that displays all journals stored
+ * in the system. It implements the JournalDataChangeListener interface so that
+ * it can be notified when a journal's data has changed and then refresh it
+ * display of the data.
  */
 public class JournalsScreen extends JPanel implements JournalDataChangeListener {
 
@@ -30,12 +31,12 @@ public class JournalsScreen extends JPanel implements JournalDataChangeListener 
     private JournalsTableModel journalsTableModel;
     private JComboBox sortByComboBox;
     private CardsPanel cardsPanel;
-    private JournalViewScreen journalViewPanel;
+    private JournalEntriesScreen journalViewScreen;
     private JLabel numEntriesLabel, totalDurationLabel, numJournalsLabel;
 
-    public JournalsScreen(CardsPanel cardsPanel, JournalViewScreen journalViewPanel) {
+    public JournalsScreen(CardsPanel cardsPanel, JournalEntriesScreen journalViewScreen) {
         this.cardsPanel = cardsPanel;
-        this.journalViewPanel = journalViewPanel;
+        this.journalViewScreen = journalViewScreen;
 
         dao = DataAccessObject.getInstance();
         dao.addJournalDataChangeListener(this);
@@ -54,7 +55,7 @@ public class JournalsScreen extends JPanel implements JournalDataChangeListener 
         sortByComboBox.addActionListener(new SortByComboBoxListener());
         sortByPanel.add(new JLabel("Sort By: "));
         sortByPanel.add(sortByComboBox);
-        
+
         numEntriesLabel = new JLabel("Total Entries: ");
         totalDurationLabel = new JLabel("Total Duration: ");
         numJournalsLabel = new JLabel("Num Journals: ");
@@ -66,9 +67,9 @@ public class JournalsScreen extends JPanel implements JournalDataChangeListener 
 
         JPanel buttonsPanel = new JPanel();
 
-        JButton createNewJournalButton = new JButton("Create New Journal");
-        createNewJournalButton.addActionListener(new CreateNewJournalButtonListener());
-        buttonsPanel.add(createNewJournalButton);
+        JButton createJournalButton = new JButton("Create New Journal");
+        createJournalButton.addActionListener(new CreateJournalButtonListener());
+        buttonsPanel.add(createJournalButton);
 
         JButton deleteJournalButton = new JButton("Delete Journal");
         deleteJournalButton.addActionListener(new DeleteJournalButtonListener());
@@ -83,34 +84,31 @@ public class JournalsScreen extends JPanel implements JournalDataChangeListener 
         add(journalsTableScrollPane);
         add(buttonsPanel);
     }
-    
+
     /**
-     * This method is called when a journal's data has changed, for example
-     * a new entry has been added to the journal, an entry has been deleted
-     * from the journal etc. The panel then needs to update its display
-     * of the data.
+     * This method is called when a journal's data has changed, for example a
+     * new entry has been added to the journal, an entry has been deleted from
+     * the journal etc. The screen then needs to update its display of the data.
      */
     public void dataChanged() {
         journalsTableModel.updateData();
         updateSummaryDataLabels();
     }
-    
+
     private void updateSummaryDataLabels() {
-        ResultSet rs = dao.getAllJournalsSummaryData();
         try {
-            while (rs.next()) {
-                numEntriesLabel.setText("Total Entries: " + rs.getInt("journal_entries_count"));
-                totalDurationLabel.setText("Total Duration: " + Utility.getHourMinDuration(rs.getInt("total_duration")));
-                numJournalsLabel.setText("Journals Count: " + rs.getInt("journals_count"));
-            }
-        } catch (Exception e) {
+            DataAccessObject.JournalsSummaryData jsd = dao.getAllJournalsSummaryData();
+            numEntriesLabel.setText("Total Entries: " + jsd.getJournalEntriesCount());
+            totalDurationLabel.setText("Total Duration: " + Utility.getHourMinDuration(jsd.getTotalDuration()));
+            numJournalsLabel.setText("Journals Count: " + jsd.getJournalsCount());
+        } catch (SQLException e) {
             e.printStackTrace();
+            JOptionPane.showMessageDialog(null, "Error in retrieving journals summary data");
         }
     }
-    
-    // inner class listeners
 
-    public class CreateNewJournalButtonListener implements ActionListener {
+    // inner class listeners
+    public class CreateJournalButtonListener implements ActionListener {
 
         public void actionPerformed(ActionEvent e) {
             String journalName = JOptionPane.showInputDialog("Enter journal name");
@@ -125,8 +123,13 @@ public class JournalsScreen extends JPanel implements JournalDataChangeListener 
                 return;
             }
 
-            dao.createNewJournal(journalName);
-            dataChanged();
+            try {
+                dao.createJournal(journalName);
+                dataChanged();
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(null, "Error in creating journal");
+            }
         }
     }
 
@@ -135,7 +138,7 @@ public class JournalsScreen extends JPanel implements JournalDataChangeListener 
         public void actionPerformed(ActionEvent e) {
             int selectedRow = journalsTable.getSelectedRow();
             if (selectedRow == -1) {
-                JOptionPane.showMessageDialog(null, "no journal selected");
+                JOptionPane.showMessageDialog(null, "no journal selected for deletion");
                 return;
             }
 
@@ -144,8 +147,13 @@ public class JournalsScreen extends JPanel implements JournalDataChangeListener 
                     "Delete confirmation", JOptionPane.YES_NO_OPTION);
             if (dialogResult == JOptionPane.YES_OPTION) {
                 // delete the journal from the database
-                dao.deleteJournal(journalsTableModel.getJournalID(selectedRow));
-                dataChanged();
+                try {
+                    dao.deleteJournal(journalsTableModel.getJournalID(selectedRow));
+                    dataChanged();
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                    JOptionPane.showMessageDialog(null, "Error in deleting journal");
+                }
             }
         }
     }
@@ -160,8 +168,7 @@ public class JournalsScreen extends JPanel implements JournalDataChangeListener 
             }
 
             int journalID = journalsTableModel.getJournalID(selectedRow);
-            // show the JournalViewPanel with the specified journal
-            journalViewPanel.setJournalID(journalID);
+            journalViewScreen.setJournalID(journalID);
             cardsPanel.switchToCard("journal view");
         }
     }
@@ -172,8 +179,7 @@ public class JournalsScreen extends JPanel implements JournalDataChangeListener 
             DataAccessObject.SortJournalBy sortBy = (DataAccessObject.SortJournalBy) sortByComboBox.getSelectedItem();
             journalsTableModel.setDataSortingMethod(sortBy);
             journalsTableModel.updateData(); // the table model needs to be told the
-            // data it is to display has changed (but we don't need to update the 
-            // journals summary data as well since this won't be affected)
+            // data it is to display has changed 
         }
     }
 }

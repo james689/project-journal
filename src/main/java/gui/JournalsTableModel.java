@@ -1,20 +1,21 @@
 package gui;
 
-import core.DataAccessObject;
-import core.Utility;
-import java.sql.ResultSet;
-import java.util.ArrayList;
+import data.DataAccessObject;
+import data.DataAccessObject.JournalInfo;
+import java.sql.SQLException;
+import utility.Utility;
 import java.util.List;
+import javax.swing.JOptionPane;
 import javax.swing.table.AbstractTableModel;
 
 /**
- * The data model for the JournalsTable that is displayed on the 
- * Journals screen.
+ * Table model for the JournalsTable that is displayed on the Journals
+ * screen.
  */
 public class JournalsTableModel extends AbstractTableModel {
 
-    private DataAccessObject.SortJournalBy dataSortingMethod; 
-    private List<String[]> data; // each String[] represents one row in the table
+    private DataAccessObject.SortJournalBy dataSortingMethod;
+    private List<DataAccessObject.JournalInfo> data;
     private String[] tableHeaders = {"journal id", "journal name", "duration", "# entries"};
 
     public JournalsTableModel() {
@@ -23,7 +24,6 @@ public class JournalsTableModel extends AbstractTableModel {
     }
 
     // standard table model methods
-    
     public String getColumnName(int i) {
         return tableHeaders[i];
     }
@@ -37,23 +37,22 @@ public class JournalsTableModel extends AbstractTableModel {
     }
 
     public Object getValueAt(int row, int col) {
-        String[] rowData = data.get(row);
+        DataAccessObject.JournalInfo rowData = data.get(row);
         switch (col) {
             case 0:
-                return rowData[0];
+                return rowData.getID();
             case 1:
-                return rowData[1];
+                return rowData.getName();
             case 2:
-                return rowData[2];
+                return Utility.getHourMinDuration(rowData.getDuration());
             case 3:
-                return rowData[3];
+                return rowData.getNumEntries();
             default:
                 return null;
         }
     }
 
     // table model methods specific to JournalsTableModel
-    
     public void setDataSortingMethod(DataAccessObject.SortJournalBy sortingMethod) {
         this.dataSortingMethod = sortingMethod;
     }
@@ -64,8 +63,7 @@ public class JournalsTableModel extends AbstractTableModel {
 
     // returns the journal ID for the given row
     public int getJournalID(int row) {
-        String[] rowData = data.get(row);
-        return Integer.parseInt(rowData[0]);
+        return data.get(row).getID();
     }
 
     public void updateData() {
@@ -74,23 +72,15 @@ public class JournalsTableModel extends AbstractTableModel {
     }
 
     // retrieves the data from the database
-    private List<String[]> getData() {
-        List<String[]> theData = new ArrayList<>();
+    private List<DataAccessObject.JournalInfo> getData() {
         DataAccessObject dao = DataAccessObject.getInstance();
-        ResultSet rs = dao.getJournals(dataSortingMethod);
+        List<JournalInfo> ret = null;
         try {
-            while (rs.next()) {
-                String journalID = rs.getString("id");
-                String journalName = rs.getString("name");
-                int journalDurationMins = rs.getInt("total_duration");
-                String numEntries = rs.getString("num_entries");
-                theData.add(new String[]{journalID, journalName, 
-                    Utility.getHourMinDuration(journalDurationMins), numEntries});
-            }
-        } catch (Exception e) {
+            ret = dao.getJournals(dataSortingMethod);
+        } catch (SQLException e) {
             e.printStackTrace();
+            JOptionPane.showMessageDialog(null, "Error retrieving journals from database");
         }
-
-        return theData;
+        return ret;
     }
 }
