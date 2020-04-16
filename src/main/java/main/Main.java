@@ -1,7 +1,7 @@
 package main;
 
 import gui.CardsPanel;
-import gui.JournalViewScreen;
+import gui.JournalEntriesScreen;
 import gui.JournalsScreen;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
@@ -9,15 +9,15 @@ import javax.swing.JPanel;
 public class Main {
 
     public static void main(String[] args) {
-        JFrame window = new JFrame("Learning Journal");
+        JFrame window = new JFrame("Project Journals");
         window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         CardsPanel cardsPanel = new CardsPanel();
-        JournalViewScreen journalViewPanel = new JournalViewScreen(cardsPanel);
-        JPanel journalsPanel = new JournalsScreen(cardsPanel, journalViewPanel);
+        JournalEntriesScreen journalEntriesScreen = new JournalEntriesScreen(cardsPanel);
+        JPanel journalsScreen = new JournalsScreen(cardsPanel, journalEntriesScreen);
         
-        cardsPanel.addCard(journalsPanel, "journals");
-        cardsPanel.addCard(journalViewPanel, "journal view");
+        cardsPanel.addCard(journalsScreen, "journals");
+        cardsPanel.addCard(journalEntriesScreen, "journal view");
 
         window.setContentPane(cardsPanel);
         window.pack();

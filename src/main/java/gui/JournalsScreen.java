@@ -19,7 +19,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTable;
 
 /**
- * The JournalsScreen represents the GUI screen that shows all journals stored
+ * The JournalsScreen class represents the GUI screen that displays all journals stored
  * in the system. It implements the JournalDataChangeListener interface so that
  * it can be notified when a journal's data has changed and then refresh it
  * display of the data.
@@ -31,12 +31,12 @@ public class JournalsScreen extends JPanel implements JournalDataChangeListener 
     private JournalsTableModel journalsTableModel;
     private JComboBox sortByComboBox;
     private CardsPanel cardsPanel;
-    private JournalViewScreen journalViewPanel;
+    private JournalEntriesScreen journalViewScreen;
     private JLabel numEntriesLabel, totalDurationLabel, numJournalsLabel;
 
-    public JournalsScreen(CardsPanel cardsPanel, JournalViewScreen journalViewPanel) {
+    public JournalsScreen(CardsPanel cardsPanel, JournalEntriesScreen journalViewScreen) {
         this.cardsPanel = cardsPanel;
-        this.journalViewPanel = journalViewPanel;
+        this.journalViewScreen = journalViewScreen;
 
         dao = DataAccessObject.getInstance();
         dao.addJournalDataChangeListener(this);
@@ -67,9 +67,9 @@ public class JournalsScreen extends JPanel implements JournalDataChangeListener 
 
         JPanel buttonsPanel = new JPanel();
 
-        JButton createNewJournalButton = new JButton("Create New Journal");
-        createNewJournalButton.addActionListener(new CreateNewJournalButtonListener());
-        buttonsPanel.add(createNewJournalButton);
+        JButton createJournalButton = new JButton("Create New Journal");
+        createJournalButton.addActionListener(new CreateJournalButtonListener());
+        buttonsPanel.add(createJournalButton);
 
         JButton deleteJournalButton = new JButton("Delete Journal");
         deleteJournalButton.addActionListener(new DeleteJournalButtonListener());
@@ -88,7 +88,7 @@ public class JournalsScreen extends JPanel implements JournalDataChangeListener 
     /**
      * This method is called when a journal's data has changed, for example a
      * new entry has been added to the journal, an entry has been deleted from
-     * the journal etc. The panel then needs to update its display of the data.
+     * the journal etc. The screen then needs to update its display of the data.
      */
     public void dataChanged() {
         journalsTableModel.updateData();
@@ -102,13 +102,13 @@ public class JournalsScreen extends JPanel implements JournalDataChangeListener 
             totalDurationLabel.setText("Total Duration: " + Utility.getHourMinDuration(jsd.getTotalDuration()));
             numJournalsLabel.setText("Journals Count: " + jsd.getJournalsCount());
         } catch (SQLException e) {
-            System.out.println("error retrieving journals summary data");
             e.printStackTrace();
+            JOptionPane.showMessageDialog(null, "Error in retrieving journals summary data");
         }
     }
 
     // inner class listeners
-    public class CreateNewJournalButtonListener implements ActionListener {
+    public class CreateJournalButtonListener implements ActionListener {
 
         public void actionPerformed(ActionEvent e) {
             String journalName = JOptionPane.showInputDialog("Enter journal name");
@@ -127,8 +127,8 @@ public class JournalsScreen extends JPanel implements JournalDataChangeListener 
                 dao.createJournal(journalName);
                 dataChanged();
             } catch (SQLException ex) {
-                System.out.println("error creating journal");
                 ex.printStackTrace();
+                JOptionPane.showMessageDialog(null, "Error in creating journal");
             }
         }
     }
@@ -138,7 +138,7 @@ public class JournalsScreen extends JPanel implements JournalDataChangeListener 
         public void actionPerformed(ActionEvent e) {
             int selectedRow = journalsTable.getSelectedRow();
             if (selectedRow == -1) {
-                JOptionPane.showMessageDialog(null, "no journal selected");
+                JOptionPane.showMessageDialog(null, "no journal selected for deletion");
                 return;
             }
 
@@ -151,8 +151,8 @@ public class JournalsScreen extends JPanel implements JournalDataChangeListener 
                     dao.deleteJournal(journalsTableModel.getJournalID(selectedRow));
                     dataChanged();
                 } catch (SQLException ex) {
-                    System.out.println("error deleting journal");
                     ex.printStackTrace();
+                    JOptionPane.showMessageDialog(null, "Error in deleting journal");
                 }
             }
         }
@@ -168,8 +168,7 @@ public class JournalsScreen extends JPanel implements JournalDataChangeListener 
             }
 
             int journalID = journalsTableModel.getJournalID(selectedRow);
-            // show the JournalViewPanel with the specified journal
-            journalViewPanel.setJournalID(journalID);
+            journalViewScreen.setJournalID(journalID);
             cardsPanel.switchToCard("journal view");
         }
     }
@@ -180,8 +179,7 @@ public class JournalsScreen extends JPanel implements JournalDataChangeListener 
             DataAccessObject.SortJournalBy sortBy = (DataAccessObject.SortJournalBy) sortByComboBox.getSelectedItem();
             journalsTableModel.setDataSortingMethod(sortBy);
             journalsTableModel.updateData(); // the table model needs to be told the
-            // data it is to display has changed (but we don't need to update the 
-            // journals summary data as well since this won't be affected)
+            // data it is to display has changed 
         }
     }
 }

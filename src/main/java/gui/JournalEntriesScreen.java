@@ -23,11 +23,11 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 
 /**
- * This screen displays all of the entries belonging to a single journal, as
+ * This screen displays the entries belonging to a single journal, as
  * well as summary data about the journal such as the number of entries and
  * duration of the journal.
  */
-public class JournalViewScreen extends JPanel implements JournalDataChangeListener {
+public class JournalEntriesScreen extends JPanel implements JournalDataChangeListener {
 
     private CardsPanel cardsPanel;
     private int journalID; // id of the journal the screen will display
@@ -37,7 +37,7 @@ public class JournalViewScreen extends JPanel implements JournalDataChangeListen
 
     private DataAccessObject dao;
 
-    public JournalViewScreen(CardsPanel cardsPanel) {
+    public JournalEntriesScreen(CardsPanel cardsPanel) {
         this.cardsPanel = cardsPanel;
         dao = DataAccessObject.getInstance();
         dao.addJournalDataChangeListener(this);
@@ -65,18 +65,18 @@ public class JournalViewScreen extends JPanel implements JournalDataChangeListen
         JButton backToJournalsScreenButton = new JButton("back to journals");
         backToJournalsScreenButton.addActionListener(new BackToJournalsScreenButtonListener());
 
-        JButton newJournalEntryButton = new JButton("New entry");
-        newJournalEntryButton.addActionListener(new NewJournalEntryButtonListener());
+        JButton createJournalEntryButton = new JButton("New entry");
+        createJournalEntryButton.addActionListener(new CreateJournalEntryButtonListener());
 
         add(backToJournalsScreenButton);
         add(metaDataPanel);
         add(Box.createVerticalStrut(20));
         add(journalEntriesPanelScrollPane);
-        add(newJournalEntryButton);
+        add(createJournalEntryButton);
     }
 
     public void dataChanged() {
-        System.out.println("JournalViewPanel.dataChanged() called");
+        System.out.println("JournalEntriesScreen.dataChanged() called");
         refreshData();
     }
 
@@ -91,18 +91,12 @@ public class JournalViewScreen extends JPanel implements JournalDataChangeListen
     private void refreshData() {
         try {
             JournalInfo journalMetaData = dao.getJournalMetaData(journalID);
-            populateJournalMetaDataLabels(journalMetaData);
-        } catch (SQLException e) {
-            System.out.println("could not get journal meta data");
-            e.printStackTrace();
-        }
-        
-        try {
             List<JournalEntry> journalEntriesData = dao.getJournalEntries(journalID, DataAccessObject.SortJournalEntryBy.DATE_ASC);
+            populateJournalMetaDataLabels(journalMetaData);
             populateJournalEntriesPanel(journalEntriesData);
         } catch (SQLException e) {
-            System.out.println("could not get journal entries data");
             e.printStackTrace();
+            JOptionPane.showMessageDialog(null, "Error in retrieving journal data");
         }
 
         // the screen must be revalidated and repainted to ensure
@@ -145,6 +139,16 @@ public class JournalViewScreen extends JPanel implements JournalDataChangeListen
 
             setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
 
+            Box entryLabelsBox = createEntryLabelsBox();
+            JTextArea textArea = createTextArea();
+            Box buttonBox = createButtonBox();
+
+            add(entryLabelsBox);
+            add(textArea);
+            add(buttonBox);
+        }
+        
+        private Box createEntryLabelsBox() {
             Box entryLabelsBox = Box.createHorizontalBox();
             entryLabelsBox.setAlignmentX(Component.LEFT_ALIGNMENT);
             JLabel entryIDLabel = new JLabel("ID: " + Integer.toString(entryID));
@@ -158,13 +162,19 @@ public class JournalViewScreen extends JPanel implements JournalDataChangeListen
             entryLabelsBox.add(entryDateLabel);
             entryLabelsBox.add(Box.createRigidArea(new Dimension(10, 0)));
             entryLabelsBox.add(entryDurationLabel);
-
+            return entryLabelsBox;
+        }
+        
+        private JTextArea createTextArea() {
             JTextArea textArea = new JTextArea(entryText, 20, 20);
             textArea.setAlignmentX(Component.LEFT_ALIGNMENT);
             textArea.setEditable(false);
             textArea.setLineWrap(true);
             textArea.setWrapStyleWord(true);
-
+            return textArea;
+        }
+        
+        private Box createButtonBox() {
             Box buttonBox = Box.createHorizontalBox();
             buttonBox.setAlignmentX(Component.LEFT_ALIGNMENT);
             JButton editButton = new JButton("Edit");
@@ -175,10 +185,7 @@ public class JournalViewScreen extends JPanel implements JournalDataChangeListen
             deleteButton.addActionListener(this);
             buttonBox.add(editButton);
             buttonBox.add(deleteButton);
-
-            add(entryLabelsBox);
-            add(textArea);
-            add(buttonBox);
+            return buttonBox;
         }
 
         public void actionPerformed(ActionEvent e) {
@@ -198,9 +205,8 @@ public class JournalViewScreen extends JPanel implements JournalDataChangeListen
                 try {
                     dao.deleteJournalEntry(entryID);
                 } catch (SQLException e) {
-                    // inform user there was a problem with deleting the journal entry
-                    System.out.println("dear user: there was a problem with deleting the journal entry");
                     e.printStackTrace();
+                    JOptionPane.showMessageDialog(null, "Error in deleting journal entry");
                 }
             }
         }
@@ -216,7 +222,7 @@ public class JournalViewScreen extends JPanel implements JournalDataChangeListen
                     "Edit journal entry", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
 
             if (result == JOptionPane.OK_OPTION) {
-                // get data from journal entry panel and update the database
+                // get data from journal data entry panel and update the database
                 String date = journalDataEntryPanel.getDate();
                 String dateFormattedForMysql = Utility.convertToMysqlDateFormat(date);
                 String duration = journalDataEntryPanel.getDuration();
@@ -224,8 +230,8 @@ public class JournalViewScreen extends JPanel implements JournalDataChangeListen
                 try {
                     dao.updateJournalEntry(entryID, dateFormattedForMysql, duration, entry);
                 } catch (SQLException e) {
-                    System.out.println("error updating journal entry");
                     e.printStackTrace();
+                    JOptionPane.showMessageDialog(null, "Error in editing journal entry");
                 }
             }
         }
@@ -239,7 +245,7 @@ public class JournalViewScreen extends JPanel implements JournalDataChangeListen
         }
     }
 
-    class NewJournalEntryButtonListener implements ActionListener {
+    class CreateJournalEntryButtonListener implements ActionListener {
 
         public void actionPerformed(ActionEvent e) {
             // show a dialog that allows the user to write a new journal entry
@@ -252,31 +258,19 @@ public class JournalViewScreen extends JPanel implements JournalDataChangeListen
                 return;
             }
 
-            // if here, user pressed ok button
-            // get data from journal entry panel
+            // if here, user pressed ok button, get the data from the journal data entry panel
+            // to implement later: user input validation
             String dateFormattedForMysql = Utility.convertToMysqlDateFormat(journalDataEntryPanel.getDate());
             String duration = journalDataEntryPanel.getDuration();
             String entry = journalDataEntryPanel.getEntry();
 
-            // validate data before submitting to database (still to implement)
-            // check to see if there is a journal entry in this journal with the
-            // same date (to warn the user about potential duplicate entries)
-            /*boolean exists = dao.checkJournalEntryExists(journalID, dateFormattedForMysql);
-            if (exists) {
-                // prompt user to make sure they really do want to insert this journal entry
-                int dialogResult = JOptionPane.showConfirmDialog(null, "There is an existing entry with the same date, do you wish to continue?",
-                        "Potential duplicate entry", JOptionPane.YES_NO_OPTION);
-                if (dialogResult == JOptionPane.NO_OPTION || dialogResult == JOptionPane.CLOSED_OPTION) {
-                    return;
-                }
-            }*/
             // add the journal entry to the database
             try {
                 dao.createJournalEntry(journalID, dateFormattedForMysql, duration, entry);
             } catch (SQLException ex) {
-                System.out.println("error creating journal entry");
                 ex.printStackTrace();
+                JOptionPane.showMessageDialog(null, "Error in creating journal entry");
             }
         }
-    } // end class NewJournalEntryButtonListener
-} // end JournalViewScreen
+    } 
+} 

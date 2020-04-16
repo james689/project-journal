@@ -5,10 +5,11 @@ import data.DataAccessObject.JournalInfo;
 import java.sql.SQLException;
 import utility.Utility;
 import java.util.List;
+import javax.swing.JOptionPane;
 import javax.swing.table.AbstractTableModel;
 
 /**
- * The data model for the JournalsTable that is displayed on the Journals
+ * Table model for the JournalsTable that is displayed on the Journals
  * screen.
  */
 public class JournalsTableModel extends AbstractTableModel {
@@ -77,8 +78,8 @@ public class JournalsTableModel extends AbstractTableModel {
         try {
             ret = dao.getJournals(dataSortingMethod);
         } catch (SQLException e) {
-            System.out.println("error retrieving journals from database");
             e.printStackTrace();
+            JOptionPane.showMessageDialog(null, "Error retrieving journals from database");
         }
         return ret;
     }

@@ -40,8 +40,8 @@ public class DataAccessObject {
     
     // checks to see whether the database already exists
     // by attempting to create a connection to it. If cannot connect
-    // to the database, assume that it doesn't exist. (I'll probably
-    // need to improve this check in the future as its too simple minded)
+    // to the database, assume that it doesn't exist. (I'll need to improve this 
+    // method in the future as its probably not the best way of doing this) 
     private boolean databaseExists() {
         try (Connection connection = getConnection()) {
             return true;
